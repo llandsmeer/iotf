@@ -1,5 +1,10 @@
-import tensorflow as tf
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+import tensorflow as tf
+#tf.compat.v1.disable_eager_execution()
+
+NUM_STATE_VARS = 14
 def create(ncells, dtype=tf.float32):
 
     # Soma State
@@ -46,7 +51,6 @@ def create(ncells, dtype=tf.float32):
 
         ]], dtype=dtype)
 
-@tf.function()
 def timestep(
         state,
 
@@ -86,7 +90,7 @@ def timestep(
         I_app           =   0.0
         ):
 
-    assert state.shape[1] == 14
+    assert state.shape[1] == NUM_STATE_VARS
 
     # Soma state
     V_soma              = state[:, 0]
@@ -248,63 +252,68 @@ def timestep(
         dend_Hcurrent_q     + dend_dq_dt * delta,
         ], axis=1)
 
-def build_model(ncells, cell_params=(), nsteps=40, **fixed_params):
-    # fakt
-    # how do we tell tf to use cell_params?
-    input_state = tf.keras.Input((14, ncells))
-    input_params = [tf.keras.Input(ncells) for _ in cell_params]
+def build_model(ncells, cell_params=(), nsteps=40, unroll=False, **fixed_params):
+    input_state = tf.keras.Input((NUM_STATE_VARS, ncells), name='state', batch_size=1)
+    input_params = [tf.keras.Input(ncells, name=name) for name in cell_params]
     overrides = dict(zip(cell_params, input_params))
-    io_layer = tf.keras.layers.Lambda(lambda state:
-        timestep(state, **fixed_params, **overrides)
-    )
-    out = input_state
-    for _i in range(nsteps-1):
-        out = io_layer(out)
+    state = input_state
+    if unroll:
+        for _ in range(nsteps):
+            state = timestep(state, **fixed_params, **overrides)
+        output = state
+    else:
+        def cond(_):
+            return True
+        def body(state):
+            return timestep(state, **fixed_params, **overrides),
+        output, = tf.while_loop(
+            cond=cond,
+            body=body,
+            loop_vars=[state],
+            maximum_iterations=nsteps,
+            shape_invariants=[input_state.get_shape()],
+            parallel_iterations=1,
+            name='simulation_loop'
+        )
+
     model = tf.keras.Model(
         inputs=(input_state, *input_params),
-        outputs=out
+        outputs=output
         )
-    return model
+    spec = [tf.TensorSpec((1, 14, ncells), tf.float32, name='state')]
+    for name in cell_params:
+        spec.append(tf.TensorSpec((1, ncells), tf.float32, name=name))
+    #convert
+    return spec, model
 
+
+def convert_to_onnx(spec, model, output_path='/tmp/io.onnx'):
+    import onnx
+    import tf2onnx
+    tf2onnx.convert.from_keras(model, input_signature=spec, opset=11, output_path=output_path)
+    # onnx.load(output_path)
+    return model
 
 def main():
     import time
     import random
     import matplotlib.pyplot as plt
+
+    print('building model')
     ncells = 4
-    model = build_model(ncells) # , cell_params=('g_CaL',))
+    spec, model = build_model(ncells, nsteps=1, unroll=True, cell_params=('g_CaL',))
+    print('converting model')
+    convert_to_onnx(spec, model)
+
     state = create(ncells)
     trace = []
     g_CaL = tf.constant([random.random()*2 for _ in range(ncells)])
-    for _ in range(100):
-        state = model(state) #, g_CaL)
+    for _ in range(10):
+        print('loop')
+        state = model((state, g_CaL))
         trace.append( state[0][0].numpy() )
-        print('loop')
     plt.plot(trace)
     plt.show()
-
-    return
-    ncells = 4
-    model = tf.keras.Sequential([
-        tf.keras.layers.Lambda(lambda state:
-            timestep(state, g_CaL=g_CaL)
-        )
-        for _ in range(40)
-    ])
-    model.build((14, ncells))
-    model.save('model')
-    state = create(ncells)
-    trace = []
-    for _ in range(1000):
-        state = model(state)
-        print('loop')
-        trace.append( state[0].numpy() )
-    plt.plot(trace)
-    plt.show()
-
-
-
-
 
 if __name__ == '__main__':
     main()
