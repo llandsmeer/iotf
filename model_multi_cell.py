@@ -252,16 +252,21 @@ def timestep(
         dend_Hcurrent_q     + dend_dq_dt * delta,
         ], axis=1)
 
-def build_model(ncells, cell_params=(), nsteps=40, unroll=False, **fixed_params):
+def build_model(ncells, cell_params=(), nsteps=1, unroll=False, **fixed_params):
     input_state = tf.keras.Input((NUM_STATE_VARS, ncells), name='state', batch_size=1)
     input_params = [tf.keras.Input(ncells, name=name) for name in cell_params]
     overrides = dict(zip(cell_params, input_params))
     state = input_state
     if unroll:
+        if nsteps >= 1:
+            import warnings
+            warnings.warn('Explicit unrolling is slow, use the ONNX Loop opcode')
+        # unrolling is ine
         for _ in range(nsteps):
             state = timestep(state, **fixed_params, **overrides)
         output = state
     else:
+        raise NotImplementedError('Sorry can\'t get this to work')
         def cond(_):
             return True
         def body(state):
@@ -286,13 +291,18 @@ def build_model(ncells, cell_params=(), nsteps=40, unroll=False, **fixed_params)
     #convert
     return spec, model
 
-
 def convert_to_onnx(spec, model, output_path='/tmp/io.onnx'):
-    import onnx
     import tf2onnx
-    tf2onnx.convert.from_keras(model, input_signature=spec, opset=11, output_path=output_path)
-    # onnx.load(output_path)
-    return model
+    tf2onnx.convert.from_keras(
+            model=model,
+            input_signature=spec,
+            opset=11,
+            output_path=output_path
+            )
+
+def add_loop_opcode(input_path='onnx'):
+    import onnx
+    model = onnx.load(input_path)
 
 def main():
     import time
