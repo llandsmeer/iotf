@@ -50,12 +50,12 @@ gjs = [ (0.05, 0, 1), (0.01, 1, 2), (0.03, 2, 3) ]
 scatter, gather = cx36_gap_junctions_to_sparse_matrix(gjs, ncells)
 
 # random cell voltages
-v = tf.convert_to_tensor(np.random.random(ncells).reshape((-1, 1)), dtype='float32')
+v = tf.convert_to_tensor(np.random.random(ncells), dtype='float32')
 
 # resulting gap junction current
-vdiff = tf.sparse.sparse_dense_matmul(scatter, v)
+vdiff = tf.sparse.sparse_dense_matmul(scatter, v[..., None])#tf.reshape(v, (-1, 1)))
 cx36 = 0.2 + 0.8 * tf.exp(-vdiff*vdiff / 100)
-current = tf.sparse.sparse_dense_matmul(gather, cx36)
+current = tf.sparse.sparse_dense_matmul(gather, cx36)[..., 0]
 
 # validation: explicit calculation of gap junction current without sparse matrix
 expected = np.zeros(ncells)
@@ -65,7 +65,7 @@ for w, i, j in gjs:
         expected[self] += w * (0.2 + 0.8*np.exp(-vdiff**2/100))
 
 # comparison
-actual = current.numpy().flatten()
+actual = current.numpy()
 print(expected)
 print(actual)
 assert np.allclose(actual, expected)

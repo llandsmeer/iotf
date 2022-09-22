@@ -2,10 +2,9 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 import tensorflow as tf
-#tf.compat.v1.disable_eager_execution()
 
 NUM_STATE_VARS = 14
-def create(ncells, dtype=tf.float32):
+def make_initial_neuron_state(ncells, dtype=tf.float32):
 
     # Soma State
     V_soma          = -60.0
@@ -51,6 +50,42 @@ def create(ncells, dtype=tf.float32):
 
         ]], dtype=dtype)
 
+def make_sparse_matrices_for_gap_junctions(pairs, ncells=0):
+    import numpy as np # ONLY user here for float32 conversion
+    # tensorflow sparse array is constructed COO
+    # a dictionary mapping indices (i, j) to values (v)
+    # which we give as two separate lists
+    #
+    # scatter is maps the voltage array to an voltage difference per gap junction array
+    scatter_indices = []
+    scatter_values = []
+    # gather maps the conductances, derived from the voltage differences to currents
+    gather_indices = []
+    gather_values = []
+    for idx, (w, i, j) in enumerate(pairs):
+        i, j = sorted([i, j])
+        # if ncells was not given or too small, update to maximum cell index
+        ncells = max(ncells, i+1, j+1)
+        # bidirectional connections
+        for gj_id, self, other in [2*idx, i, j], [2*idx+1, j, i]:
+            # scatter: vdiff[gj_id] = v[other] - v[self]
+            scatter_indices.extend([(gj_id, self), (gj_id, other)])
+            scatter_values.extend([1, -1])
+            # gather: i[self] = sum_{gj_ids(self)} w * f(vdiff[gj_id])
+            gather_indices.append((self, gj_id))
+            gather_values.append(w)
+    scatter = tf.SparseTensor(
+            indices=np.array(scatter_indices, dtype='float32'),
+            values=np.array(scatter_values, dtype='float32'),
+            dense_shape=(len(pairs)*2, ncells)
+            )
+    gather = tf.SparseTensor(
+            indices=np.array(gather_indices, dtype='float32'),
+            values=np.array(gather_values, dtype='float32'),
+            dense_shape=(ncells, len(pairs)*2)
+            )
+    return scatter, gather
+
 def timestep(
         state,
 
@@ -88,11 +123,11 @@ def timestep(
 
         # Stimulus parameter
         I_app           =   0.0,
-        ngapps = 1,
-        Ggapp = 0.05
+        gj_scatter      = None,
+        gj_gather       = None,
         ):
 
-    assert state.shape[1] == NUM_STATE_VARS
+    assert state.shape[0] == NUM_STATE_VARS
 
     # Soma state
     V_soma              = state[:, 0]
@@ -193,17 +228,14 @@ def timestep(
     ########## DEND UPDATE ##########
 
     # CURRENT: Dend application current (I_app)
-    I_gapp = 0
-    for i in range(1, 1 + ngapps):
-        for sign in [-1, +1]:
-            gap_other = tf.roll(V_dend, i * sign, axis=1)
-            gap_vdiff = gap_other - V_dend
-            Gcx36 = 0.8 * tf.exp(-0.01*gap_vdiff*gap_vdiff) + 0.2
-            I_gapp = I_gapp + Gcx36 * Ggapp * gap_vdiff
-    #for i in range(1, 1 + ngapps):
-        #dend_next = tf.roll(V_dend, -i, axis=1)
-        #dend_prev = tf.roll(V_dend, +i, axis=1)
-        #I_gapp = Ggapp*(dend_prev - V_dend) + Ggapp*(dend_next - V_dend)
+
+    if gj_scatter is not None and gj_gather is not None:
+        gj_vdiff = tf.sparse.sparse_dense_matmul(gj_scatter, V_dend[..., None])
+        gj_nonlin = (0.2 + 0.8 * tf.exp(-0.01 * gj_vdiff*gj_vdiff)) * gj_vdiff
+        I_gapp = tf.sparse.sparse_dense_matmul(gj_gather, gj_nonlin)[..., 0]
+    else:
+        I_gapp = 0
+
     dend_I_application = -I_app - I_gapp
 
     # CURRENT: Dend leak current (ld)
@@ -265,114 +297,112 @@ def timestep(
         dend_Hcurrent_q     + dend_dq_dt * delta,
         ], axis=1)
 
-def build_model(ncells, cell_params=(), nsteps=1, unroll=False, **fixed_params):
-    input_state = tf.keras.Input((NUM_STATE_VARS, ncells), name='state', batch_size=1)
-    input_params = [tf.keras.Input(ncells, name=name) for name in cell_params]
-    overrides = dict(zip(cell_params, input_params))
-    state = input_state
-    if unroll:
-        if nsteps >= 1:
-            import warnings
-            warnings.warn('Explicit unrolling is slow, use the ONNX Loop opcode')
-        # unrolling is ine
-        for _ in range(nsteps):
-            state = timestep(state, **fixed_params, **overrides)
-        output = state
-    else:
-        raise NotImplementedError('Sorry can\'t get this to work')
-        def cond(_):
-            return True
-        def body(state):
-            return timestep(state, **fixed_params, **overrides),
-        output, = tf.while_loop(
-            cond=cond,
-            body=body,
-            loop_vars=[state],
-            maximum_iterations=nsteps,
-            shape_invariants=[input_state.get_shape()],
-            parallel_iterations=1,
-            name='simulation_loop'
-        )
+# def build_function_spec(fixed=(), variable=()):
+#     fixed = set(fixed)
+#     variable = set(variable)
+#     spec = []
+#     for param in list(inspect.signature(timestep).parameters.values()):
+#         if param.default == param.empty:
+#             assert param.name == 'state'
+#         if param.name == 'state':
+#             spec.append(tf.TensorSpec((14, ncells), tf.float32, name='state'))
+#         elif param.name in fixed:
+#             fixed.remove(param.name)
+#             spec.append(tf.TensorSpec((), tf.float32, name=param.name))
+#         elif param.name in variable:
+#             variable.remove(param.name)
+#             spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
+#         else:
+#             spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
+#     assert not fixed
+#     assert not variable
+#     return spec
 
-    model = tf.keras.Model(
-        inputs=(input_state, *input_params),
-        outputs=output
-        )
-    spec = [tf.TensorSpec((1, 14, ncells), tf.float32, name='state')]
-    for name in cell_params:
-        spec.append(tf.TensorSpec((1, ncells), tf.float32, name=name))
-    #convert
-    return spec, model
-
-def convert_to_onnx(spec, model, output_path='/tmp/io.onnx'):
-    import tf2onnx
-    tf2onnx.convert.from_keras(
-            model=model,
-            input_signature=spec,
-            opset=11,
-            output_path=output_path
-            )
-
-def add_loop_opcode(input_path='onnx'):
-    import onnx
-    model = onnx.load(input_path)
-
-def main():
-    import time
-    import random
-    import matplotlib.pyplot as plt
-
-    print('building model')
-    ncells = 4
-    spec, model = build_model(ncells, nsteps=2, unroll=True, cell_params=('g_CaL',))
-    print('converting model')
-    convert_to_onnx(spec, model)
-
-    state = create(ncells)
-    trace = []
-    g_CaL = tf.constant([random.random()*2 for _ in range(ncells)])
-    for _ in range(500):
-        print('loop')
-        state = model((state, g_CaL))
-        trace.append( state[0][0].numpy() )
-    plt.plot(trace)
-    plt.show()
-
-def build_function_spec(fixed=(), variable=()):
-    fixed = set(fixed)
-    variable = set(variable)
-    spec = []
-    for param in list(inspect.signature(timestep).parameters.values()):
-        if param.default == param.empty:
-            assert param.name == 'state'
-        if param.name == 'state':
-            spec.append(tf.TensorSpec((14, ncells), tf.float32, name='state'))
-        elif param.name in fixed:
-            fixed.remove(param.name)
-            spec.append(tf.TensorSpec((), tf.float32, name=param.name))
-        elif param.name in variable:
-            variable.remove(param.name)
-            spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
+def make_function(*, gj=False, ncells=None, argconfig=()):
+    MAKE_FUNCTION_TEMPLATE = '@tf.function\ndef wrapper({function_args}): return timestep({call_args})'
+    import io
+    argconfig = dict(argconfig)
+    cell_params = ['g_int', 'p1', 'p2', 'g_CaL', 'g_h', 'g_K_Ca',
+                  'g_ld', 'g_la', 'g_ls', 'g_Na_s', 'g_Kdr_s', 'g_K_s',
+                  'g_CaH', 'g_Na_a', 'g_K_a', 'V_Na', 'V_K', 'V_Ca',
+                  'V_h', 'V_l', 'I_app', 'delta' ]
+    gj_params = ['gj_scatter', 'gj_gather']
+    function_args = ['state'] # generated function signature in python
+    call_args = ['state'] # call arguments to timestep()
+    argspec = [tf.TensorSpec((NUM_STATE_VARS, ncells), tf.float32, name='state')] # TensorFlow argspec
+    for param in cell_params:
+        if param not in argconfig:
+            continue
+        value = argconfig.pop(param)
+        if isinstance(value, (float, int)):
+            call_args.append(f'{param}={value}')
+        elif value == 'CONSTANT':
+            function_args.append(param)
+            call_args.append(f'{param}={param}')
+            argspec.append(tf.TensorSpec((), tf.float32, name=param))
+        elif value == 'VARY':
+            function_args.append(param)
+            call_args.append(f'{param}={param}')
+            argspec.append(tf.TensorSpec((ncells,), tf.float32, name=param))
         else:
-            spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
-    assert not fixed
-    assert not variable
-    return spec
+            raise ValueError(f'Unknown argconfig {param}={repr(value)}. Must be float, int, "CONSTANT" or "VARY"')
+    if argconfig:
+        raise ValueError(f'Leftover argconfig {argconfig}')
+    if gj:
+        function_args.append('gj_scatter')
+        function_args.append('gj_gather')
+        call_args.append('gj_scatter=gj_scatter')
+        call_args.append('gj_gather=gj_gather')
+        spec = tf.SparseTensorSpec((None, ncells), tf.float32)
+        spec.name = 'gj_scatter'
+        argspec.append(spec)
+        spec = tf.SparseTensorSpec((None, ncells), tf.float32)
+        spec.name = 'gj_gather'
+        argspec.append(spec)
 
+    function_args = ', '.join(function_args)
+    call_args = ', '.join(call_args)
+
+    final = MAKE_FUNCTION_TEMPLATE.format(function_args=function_args, call_args=call_args)
+    env = dict(
+        tf = tf,
+        timestep=timestep
+    )
+    exec(final, env)
+    wrapper = env['wrapper']
+    wrapper.argspec = argspec
+    return wrapper
 
 def main2():
     import tf2onnx
     import inspect
-    assert argspec.keywords is None and argspec.varargs is None
-    for k, v in zip(argspec.args, argspec.defaults):
-        print(k, v)
-    return
-    spec = []
-    tf2onnx.convert.from_function(
-            function=tf.function(timestep), 
-            input_signature=spec,
-            output_path='/tmp/io2.onnx')
+    print('#'*100)
+    print('MAKING FUNCTION'.center(100))
+    print('#'*100)
+    tf_function = make_function(
+        gj=True,
+        argconfig=dict(
+        g_CaL = 1.0,
+        p1 = 'CONSTANT'
+        ))
+    print('#'*100)
+    print('CONVERTING TO ONNX'.center(100))
+    print('#'*100)
+    onnx_model, _ = tf2onnx.convert.from_function(
+            function=tf_function, 
+            input_signature=tf_function.argspec,
+            output_path='/tmp/io2.onnx',
+            opset=16,
+            )
 
+    print('#'*100)
+    print('CONVERTING TO KERAS'.center(100))
+    print('#'*100)
+    from onnx2keras import onnx_to_keras
+    keras_model = onnx_to_keras(onnx_model, [arg.name for arg in tf_function.argspec])
+    print(keras_model)
+    print('#'*100)
 
 if __name__ == '__main__':
     main2()
+
