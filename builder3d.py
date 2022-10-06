@@ -1,90 +1,133 @@
 import os
+import numpy as np # for network generation
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 import tensorflow as tf
 
 NUM_STATE_VARS = 14
-def make_initial_neuron_state(ncells, dtype=tf.float32):
-
-    # Soma State
-    V_soma          = -60.0
-    soma_k          =   0.7423159
-    soma_l          =   0.0321349
-    soma_h          =   0.3596066
-    soma_n          =   0.2369847
-    soma_x          =   0.1
-
-    # Axon state
-    V_axon          = -60.0
-    axon_Sodium_h   =   0.9
-    axon_Potassium_x=   0.2369847
-
-    # Dend state
-    V_dend          = -60.0
-    dend_Ca2Plus    =   3.715
-    dend_Calcium_r  =   0.0113
-    dend_Potassium_s=   0.0049291
-    dend_Hcurrent_q =   0.0337836
-
-    return tf.constant([[
-
-        # Soma state
-        [V_soma]*ncells,
-        [soma_k]*ncells,
-        [soma_l]*ncells,
-        [soma_h]*ncells,
-        [soma_n]*ncells,
-        [soma_x]*ncells,
+def make_initial_neuron_state(
+        ncells,
+        V_soma          = -60.0,
+        soma_k          =   0.7423159,
+        soma_l          =   0.0321349,
+        soma_h          =   0.3596066,
+        soma_n          =   0.2369847,
+        soma_x          =   0.1,
 
         # Axon state
-        [V_axon]*ncells,
-        [axon_Sodium_h]*ncells,
-        [axon_Potassium_x]*ncells,
+        V_axon          = -60.0,
+        axon_Sodium_h   =   0.9,
+        axon_Potassium_x=   0.2369847,
 
         # Dend state
-        [V_dend]*ncells,
+        V_dend          = -60.0,
+        dend_Ca2Plus    =   3.715,
+        dend_Calcium_r  =   0.0113,
+        dend_Potassium_s=   0.0049291,
+        dend_Hcurrent_q =   0.0337836,
+        dtype=tf.float32):
+
+    # Soma State
+
+    return tf.constant([
+
+        # Soma state
+        [V_soma]*ncells if V_soma is not None else np.random.normal(-60, 3, ncells),
+        [soma_k]*ncells if soma_k is not None else np.random.random(ncells),
+        [soma_l]*ncells if soma_l is not None else np.random.random(ncells),
+        [soma_h]*ncells if soma_h is not None else np.random.random(ncells),
+        [soma_n]*ncells if soma_n is not None else np.random.random(ncells),
+        [soma_x]*ncells if soma_x is not None else np.random.random(ncells),
+
+        # Axon state
+        [V_axon]*ncells if V_axon is not None else np.random.normal(-60, 3, ncells),
+        [axon_Sodium_h]*ncells if axon_Sodium_h is not None else np.random.random(ncells),
+        [axon_Potassium_x]*ncells if axon_Potassium_x is not None else np.random.random(ncells),
+
+        # Dend state
+        [V_dend]*ncells if V_dend is not None else np.random.normal(-60, 3, ncells),
         [dend_Ca2Plus]*ncells,
-        [dend_Calcium_r]*ncells,
-        [dend_Potassium_s]*ncells,
-        [dend_Hcurrent_q]*ncells,
+        [dend_Calcium_r]*ncells if dend_Calcium_r is not None else np.random.random(ncells),
+        [dend_Potassium_s]*ncells if dend_Potassium_s is not None else np.random.random(ncells),
+        [dend_Hcurrent_q]*ncells if dend_Hcurrent_q is not None else np.random.random(ncells),
 
-        ]], dtype=dtype)
+        ], dtype=dtype)
 
-def make_sparse_matrices_for_gap_junctions(pairs, ncells=0):
-    import numpy as np # ONLY user here for float32 conversion
-    # tensorflow sparse array is constructed COO
-    # a dictionary mapping indices (i, j) to values (v)
-    # which we give as two separate lists
-    #
-    # scatter is maps the voltage array to an voltage difference per gap junction array
-    scatter_indices = []
-    scatter_values = []
-    # gather maps the conductances, derived from the voltage differences to currents
-    gather_indices = []
-    gather_values = []
-    for idx, (w, i, j) in enumerate(pairs):
-        i, j = sorted([i, j])
-        # if ncells was not given or too small, update to maximum cell index
-        ncells = max(ncells, i+1, j+1)
-        # bidirectional connections
-        for gj_id, self, other in [2*idx, i, j], [2*idx+1, j, i]:
-            # scatter: vdiff[gj_id] = v[other] - v[self]
-            scatter_indices.extend([(gj_id, self), (gj_id, other)])
-            scatter_values.extend([1, -1])
-            # gather: i[self] = sum_{gj_ids(self)} w * f(vdiff[gj_id])
-            gather_indices.append((self, gj_id))
-            gather_values.append(w)
-    scatter = tf.SparseTensor(
-            indices=np.array(scatter_indices, dtype='float32'),
-            values=np.array(scatter_values, dtype='float32'),
-            dense_shape=(len(pairs)*2, ncells)
-            )
-    gather = tf.SparseTensor(
-            indices=np.array(gather_indices, dtype='float32'),
-            values=np.array(gather_values, dtype='float32'),
-            dense_shape=(ncells, len(pairs)*2)
-            )
-    return scatter, gather
+def sample_connections_3d(
+        nneurons,
+        nconnections=10,
+        rmax=2,
+        connection_probability=lambda r: np.exp(-(r/4)**2)):
+    # we sample half the connections for each neuron
+    assert nconnections % 2 == 0
+    # we assume a cubic (4d toroid) brain
+    nside = int(np.ceil(nneurons**(1/3)))
+    if rmax > nside / 2: rmax = nside // 2
+    # we set up a connection probability kernel around each neuron
+    dx, dy, dz = np.mgrid[-rmax:rmax+1, -rmax:rmax+1, -rmax:rmax+1]
+    dx, dy, dz = dx.flatten(), dy.flatten(), dz.flatten()
+    r = np.sqrt(dx*dx + dy*dy + dz*dz)
+    # we only sample backwards, as the forward connections
+    # are part of the kernel of other neurons
+    sample_backwards = \
+            ((dz < 0)) | \
+            ((dz == 0) &( dy < 0)) | \
+            ((dz == 0) & (dy == 0) & (dx < 0))
+    m = (r != 0) & sample_backwards & (r < rmax)
+    dx, dy, dz, r = dx[m], dy[m], dz[m], r[m]
+    P = connection_probability(r)
+
+    # next, there is a ~r^2 increase in point density per r,
+    # and very non uniform distribution of those due to
+    # the integer grid. let's remove that bias
+    _, r_uniq_idx = np.unique(r, return_inverse=True)
+    r_idx_freq = np.bincount(r_uniq_idx)
+    r_freq = r_idx_freq[r_uniq_idx]
+    P = P / r_freq
+    # P must sum up to 1
+    P = P / P.sum()
+
+    # a connection connects two neurons
+    final_connection_count = nneurons * nconnections // 2
+
+    # instead of sampling using the P array,
+    # we sample for each value of the P array,
+    # which is much more memory efficient
+    counts = (P * final_connection_count + .5).astype(int)
+    counts[-1] =  max(0, final_connection_count - counts[:-1].sum())
+    assert (counts < nneurons).all()
+    conn_idx = []
+    for draw in range(len(P)):
+        if counts[draw] == 0:
+            continue
+        if counts[draw] == 1:
+            draw_idx = np.array([np.random.randint(nneurons)])
+        else:
+            draw_idx = np.random.choice(nneurons, counts[draw], replace=False)
+        conn_idx.append(draw + len(P) * draw_idx)
+    conn_idx = np.concatenate(conn_idx)
+
+    # now we calculate the neuron indices back from the P kernel
+    neuron_id1 = conn_idx // len(P)
+    x = ( neuron_id1 %  nside).astype('int32')
+    y = ((neuron_id1 // nside) % nside).astype('int32')
+    z = ((neuron_id1 // (nside*nside)) % nside).astype('int32')
+
+    di = conn_idx % len(P)
+
+    neuron_id2 = ( \
+        (x + dx[di]) % nside + \
+        (y + dy[di]) % nside * nside + \
+        (z + dz[di]) % nside * nside * nside
+        ).astype(int)
+
+    # and generate the final index arrays
+    # needed for gj calculation
+    tgt_idx = np.concatenate([neuron_id1, neuron_id2])
+    src_idx = np.concatenate([neuron_id2, neuron_id1])
+
+    return tf.constant(src_idx, dtype='int32'), \
+           tf.constant(tgt_idx, dtype='int32')
 
 def timestep(
         state,
@@ -123,31 +166,32 @@ def timestep(
 
         # Stimulus parameter
         I_app           =   0.0,
-        gj_scatter      = None,
-        gj_gather       = None,
+        gj_src          = None,
+        gj_tgt          = None,
+        g_gj            = 0.05
         ):
 
     assert state.shape[0] == NUM_STATE_VARS
 
     # Soma state
-    V_soma              = state[:, 0]
-    soma_k              = state[:, 1]
-    soma_l              = state[:, 2]
-    soma_h              = state[:, 3]
-    soma_n              = state[:, 4]
-    soma_x              = state[:, 5]
+    V_soma              = state[0, :]
+    soma_k              = state[1, :]
+    soma_l              = state[2, :]
+    soma_h              = state[3, :]
+    soma_n              = state[4, :]
+    soma_x              = state[5, :]
 
     # Axon state
-    V_axon              = state[:, 6]
-    axon_Sodium_h       = state[:, 7]
-    axon_Potassium_x    = state[:, 8]
+    V_axon              = state[6, :]
+    axon_Sodium_h       = state[7, :]
+    axon_Potassium_x    = state[8, :]
 
     # Dend state
-    V_dend              = state[:, 9]
-    dend_Ca2Plus        = state[:,10]
-    dend_Calcium_r      = state[:,11]
-    dend_Potassium_s    = state[:,12]
-    dend_Hcurrent_q     = state[:,13]
+    V_dend              = state[9, :]
+    dend_Ca2Plus        = state[10,:]
+    dend_Calcium_r      = state[11,:]
+    dend_Potassium_s    = state[12,:]
+    dend_Hcurrent_q     = state[13,:]
 
     ########## SOMA UPDATE ##########
 
@@ -229,10 +273,11 @@ def timestep(
 
     # CURRENT: Dend application current (I_app)
 
-    if gj_scatter is not None and gj_gather is not None:
-        gj_vdiff = tf.sparse.sparse_dense_matmul(gj_scatter, V_dend[..., None])
-        gj_nonlin = (0.2 + 0.8 * tf.exp(-0.01 * gj_vdiff*gj_vdiff)) * gj_vdiff
-        I_gapp = tf.sparse.sparse_dense_matmul(gj_gather, gj_nonlin)[..., 0]
+    if gj_src is not None and gj_tgt is not None:
+        vdiff = tf.gather(V_dend, gj_src) - tf.gather(V_dend, gj_tgt)
+        cx36_current_per_gj = (0.2 + 0.8 * tf.exp(-vdiff*vdiff / 100)) * vdiff * g_gj
+        I_gapp = tf.tensor_scatter_nd_add(tf.zeros_like(V_dend), tf.reshape(gj_tgt, (-1, 1)),
+            cx36_current_per_gj)
     else:
         I_gapp = 0
 
@@ -295,30 +340,9 @@ def timestep(
         dend_Calcium_r      + dend_dr_dt * delta,
         dend_Potassium_s    + dend_ds_dt * delta,
         dend_Hcurrent_q     + dend_dq_dt * delta,
-        ], axis=1)
+        ], axis=0)
 
-# def build_function_spec(fixed=(), variable=()):
-#     fixed = set(fixed)
-#     variable = set(variable)
-#     spec = []
-#     for param in list(inspect.signature(timestep).parameters.values()):
-#         if param.default == param.empty:
-#             assert param.name == 'state'
-#         if param.name == 'state':
-#             spec.append(tf.TensorSpec((14, ncells), tf.float32, name='state'))
-#         elif param.name in fixed:
-#             fixed.remove(param.name)
-#             spec.append(tf.TensorSpec((), tf.float32, name=param.name))
-#         elif param.name in variable:
-#             variable.remove(param.name)
-#             spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
-#         else:
-#             spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
-#     assert not fixed
-#     assert not variable
-#     return spec
-
-def make_function(*, gj=False, ncells=None, argconfig=()):
+def make_function(*, ngj=0, ncells=None, argconfig=()):
     MAKE_FUNCTION_TEMPLATE = '@tf.function\ndef wrapper({function_args}): return timestep({call_args})'
     import io
     argconfig = dict(argconfig)
@@ -326,7 +350,6 @@ def make_function(*, gj=False, ncells=None, argconfig=()):
                   'g_ld', 'g_la', 'g_ls', 'g_Na_s', 'g_Kdr_s', 'g_K_s',
                   'g_CaH', 'g_Na_a', 'g_K_a', 'V_Na', 'V_K', 'V_Ca',
                   'V_h', 'V_l', 'I_app', 'delta' ]
-    gj_params = ['gj_scatter', 'gj_gather']
     function_args = ['state'] # generated function signature in python
     call_args = ['state'] # call arguments to timestep()
     argspec = [tf.TensorSpec((NUM_STATE_VARS, ncells), tf.float32, name='state')] # TensorFlow argspec
@@ -348,17 +371,13 @@ def make_function(*, gj=False, ncells=None, argconfig=()):
             raise ValueError(f'Unknown argconfig {param}={repr(value)}. Must be float, int, "CONSTANT" or "VARY"')
     if argconfig:
         raise ValueError(f'Leftover argconfig {argconfig}')
-    if gj:
-        function_args.append('gj_scatter')
-        function_args.append('gj_gather')
-        call_args.append('gj_scatter=gj_scatter')
-        call_args.append('gj_gather=gj_gather')
-        spec = tf.SparseTensorSpec((None, ncells), tf.float32)
-        spec.name = 'gj_scatter'
-        argspec.append(spec)
-        spec = tf.SparseTensorSpec((None, ncells), tf.float32)
-        spec.name = 'gj_gather'
-        argspec.append(spec)
+    if ngj != 0:
+        for arg in 'gj_src', 'gj_tgt', 'g_gj':
+            function_args.append(arg)
+            call_args.append(f'{arg}={arg}')
+        argspec.append(tf.TensorSpec(ngj, tf.int32, name='gj_src'))
+        argspec.append(tf.TensorSpec(ngj, tf.int32, name='gj_tgt'))
+        argspec.append(tf.TensorSpec((), tf.float32, name='g_gj'))
 
     function_args = ', '.join(function_args)
     call_args = ', '.join(call_args)
@@ -373,14 +392,15 @@ def make_function(*, gj=False, ncells=None, argconfig=()):
     wrapper.argspec = argspec
     return wrapper
 
-def main2():
+def test_onnx():
     import tf2onnx
     import inspect
     print('#'*100)
     print('MAKING FUNCTION'.center(100))
     print('#'*100)
     tf_function = make_function(
-        gj=True,
+        ngj=1000,
+        ncells=1000,
         argconfig=dict(
         g_CaL = 1.0,
         p1 = 'CONSTANT'
@@ -395,14 +415,55 @@ def main2():
             opset=16,
             )
 
-    print('#'*100)
-    print('CONVERTING TO KERAS'.center(100))
-    print('#'*100)
-    from onnx2keras import onnx_to_keras
-    keras_model = onnx_to_keras(onnx_model, [arg.name for arg in tf_function.argspec])
-    print(keras_model)
-    print('#'*100)
+    # print('#'*100)
+    # print('CONVERTING TO KERAS'.center(100))
+    # print('#'*100)
+    # from onnx2keras import onnx_to_keras
+    # keras_model = onnx_to_keras(onnx_model, [arg.name for arg in tf_function.argspec])
+    # print(keras_model)
+    # print('#'*100)
+
+def test_onnx_max():
+    import tf2onnx
+    import inspect
+    for ncells in 10, 100, 1000, 10000, 100000:
+        print('#'*100)
+        print('MAKING FUNCTION'.center(100))
+        print('#'*100)
+        tf_function = make_function(
+            ngj=ncells*10,
+            ncells=ncells,
+            argconfig=dict(
+            g_CaL = 1.0,
+            p1 = 'CONSTANT'
+            ))
+        print('#'*100)
+        print('CONVERTING TO ONNX'.center(100))
+        print('#'*100)
+        onnx_model, _ = tf2onnx.convert.from_function(
+                function=tf_function, 
+                input_signature=tf_function.argspec,
+                output_path=f'/tmp/io{ncells}.onnx',
+                opset=16,
+                )
+
+
+def test_simple():
+    import matplotlib.pyplot as plt
+    nneurons = 5**3
+    gj_src, gj_tgt = sample_connections_3d(nneurons//2)
+    out = []
+    state = make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
+    for i in range(10000):
+        state = timestep(state, gj_src=gj_src, gj_tgt=gj_tgt)
+        if i % 100 == 0:
+            out.append(np.array(state[0]))
+    out = np.array(out)
+    plt.plot(out)
+    plt.show()
+
+
 
 if __name__ == '__main__':
-    main2()
+    test_onnx_max()
 
