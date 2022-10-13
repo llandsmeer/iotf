@@ -9,8 +9,10 @@ import onnxruntime as ort
 import tensorflow as tf
 import tf2onnx
 import time
-
 import builder3d
+
+# the options.
+EP_list = ['TensorrtExecutionProvider','CUDAExecutionProvider', 'CPUExecutionProvider']
 
 print('Backend', ort.get_device())
 
@@ -33,7 +35,22 @@ def get_slowdown(nneurons):
             opset=16,
             )
 
-    ort_sess = ort.InferenceSession('/tmp/io.onnx')
+    sess_options = ort.SessionOptions()
+    sess_options.use_deterministic_compute = True
+    
+    # GRAPH optimalizations
+    #   GraphOptimizationLevel::ORT_DISABLE_ALL -> Disables all optimizations
+    #   GraphOptimizationLevel::ORT_ENABLE_BASIC -> Enables basic optimizations
+    #   GraphOptimizationLevel::ORT_ENABLE_EXTENDED -> Enables basic and extended optimizations
+    #   GraphOptimizationLevel::ORT_ENABLE_ALL -> Enables all available optimizations including layout optimizations
+
+    # sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED 
+    # sess_options.optimized_model_filepath = "/tmp/io_optimized_model.onnx"  #safe the optimilized graph here!
+    # sess_options.enable_profiling = True
+    
+  
+    ort_sess = ort.InferenceSession("/tmp/io.onnx", sess_options)
+
     a = time.time()
     niter = 0
     while time.time() - a <= 1:
