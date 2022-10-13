@@ -43,11 +43,17 @@ def get_slowdown(nneurons):
     #   GraphOptimizationLevel::ORT_ENABLE_BASIC -> Enables basic optimizations
     #   GraphOptimizationLevel::ORT_ENABLE_EXTENDED -> Enables basic and extended optimizations
     #   GraphOptimizationLevel::ORT_ENABLE_ALL -> Enables all available optimizations including layout optimizations
-
     # sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED 
     # sess_options.optimized_model_filepath = "/tmp/io_optimized_model.onnx"  #safe the optimilized graph here!
+
+    # ENABLE PROFILING
     # sess_options.enable_profiling = True
     
+    # ENABLE MULTI TREAD / NODE   (intra == openMP inside a node, INTRA == multiNODE)
+    # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
+    # opts.inter_op_num_threads = 0
+    # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
+
   
     ort_sess = ort.InferenceSession("/tmp/io.onnx", sess_options)
 
