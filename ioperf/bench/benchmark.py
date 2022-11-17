@@ -114,5 +114,5 @@ class Benchmark:
                         self.register('run_connected_probe', a, b, config, runner, trace)
                 except:
                     self.log(f"An exception occurred {type(x).__name__} ")
-            with open(self.log_file, 'a') as f:
+        with open(self.log_file, 'a') as f:
             print('done', file=f)
