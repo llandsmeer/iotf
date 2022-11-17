@@ -13,7 +13,7 @@ def make_tf_function(*, ngj=0, ncells=None, argconfig=()):
 
     When `ngj` is non-zero, the resulting function expects an extra set of parameters
 
-        `gj_src`, `gj_tgt` and `g_gj`
+    `gj_src`, `gj_tgt` and `g_gj`
 
     `ncells`: number of neurons
 
@@ -21,10 +21,10 @@ def make_tf_function(*, ngj=0, ncells=None, argconfig=()):
 
     keys correspond to model parameters, and can be chosen from
 
-        `g_int`, `p1`, `p2`, `g_CaL`, `g_h`, `g_K_Ca`,
-        `g_ld`, `g_la`, `g_ls`, `g_Na_s`, `g_Kdr_s`, `g_K_s`,
-        `g_CaH`, `g_Na_a`, `g_K_a`, `V_Na`, `V_K`, `V_Ca`,
-        `V_h`, `V_l`, `I_app`, `delta`
+    `g_int`, `p1`, `p2`, `g_CaL`, `g_h`, `g_K_Ca`,
+    `g_ld`, `g_la`, `g_ls`, `g_Na_s`, `g_Kdr_s`, `g_K_s`,
+    `g_CaH`, `g_Na_a`, `g_K_a`, `V_Na`, `V_K`, `V_Ca`,
+    `V_h`, `V_l`, `I_app`, `delta`
 
     values can be
 

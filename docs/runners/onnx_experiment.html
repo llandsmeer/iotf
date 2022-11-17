@@ -74,7 +74,7 @@ def run_experiment(
     for var, _, _ in randomize_cell_params:
         argconfig[var] = &#39;VARY&#39;
 
-    onnx_path = model.build_onnx_model(
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig
@@ -219,7 +219,7 @@ def main():
     for var, _, _ in randomize_cell_params:
         argconfig[var] = &#39;VARY&#39;
 
-    onnx_path = model.build_onnx_model(
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig

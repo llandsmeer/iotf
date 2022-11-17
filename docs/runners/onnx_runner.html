@@ -48,7 +48,7 @@ def get_slowdown(nneurons):
             nneurons, rmax=4)
     state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
 
-    onnx_path = model.build_onnx_model(
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=dict(
@@ -115,7 +115,7 @@ def main():
             nneurons, rmax=4)
     state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
 
-    onnx_path = model.build_onnx_model(
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=dict(
