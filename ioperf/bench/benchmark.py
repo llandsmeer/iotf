@@ -80,33 +80,39 @@ class Benchmark:
         self.write_hwinfo()
         for config in self.model_configs:
             for runner in supported_runners:
-                if self.run_unconnected:
-                    a = time.perf_counter()
-                    runner.setup_using_model_config(config, gap_junctions=False)
-                    b = time.perf_counter()
-                    self.register('setup_unconnected', a, b, config, runner)
-                    for i in range(self.n_rep):
+                try:
+                    if self.run_unconnected:
                         a = time.perf_counter()
-                        runner.run_unconnected(self.n_ms, config.state)
+                        runner.setup_using_model_config(config, gap_junctions=False)
                         b = time.perf_counter()
-                        self.register('run_unconnected_perf', a, b, config, runner, i)
-                    a = time.perf_counter()
-                    _, trace = runner.run_unconnected(self.n_ms, config.state, probe=True)
-                    b = time.perf_counter()
-                    self.register('run_unconnected_probe', a, b, config, runner, trace)
-                if self.run_connected:
-                    a = time.perf_counter()
-                    runner.setup_using_model_config(config, gap_junctions=True)
-                    b = time.perf_counter()
-                    self.register('setup_connected', a, b, config, runner)
-                    for i in range(self.n_rep):
+                        self.register('setup_unconnected', a, b, config, runner)
+                        for i in range(self.n_rep):
+                            a = time.perf_counter()
+                            runner.run_unconnected(self.n_ms, config.state)
+                            b = time.perf_counter()
+                            self.register('run_unconnected_perf', a, b, config, runner, i)
                         a = time.perf_counter()
-                        runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
+                        _, trace = runner.run_unconnected(self.n_ms, config.state, probe=True)
                         b = time.perf_counter()
-                        self.register('run_connected_perf', a, b, config, runner, i)
-                    a = time.perf_counter()
-                    _, trace = runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
-                    b = time.perf_counter()
-                    self.register('run_connected_probe', a, b, config, runner, trace)
-        with open(self.log_file, 'a') as f:
+                        self.register('run_unconnected_probe', a, b, config, runner, trace)
+                except:
+                    self.log(f"An exception occurred {type(x).__name__} ")
+                try:
+                    if self.run_connected:
+                        a = time.perf_counter()
+                        runner.setup_using_model_config(config, gap_junctions=True)
+                        b = time.perf_counter()
+                        self.register('setup_connected', a, b, config, runner)
+                        for i in range(self.n_rep):
+                            a = time.perf_counter()
+                            runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
+                            b = time.perf_counter()
+                            self.register('run_connected_perf', a, b, config, runner, i)
+                        a = time.perf_counter()
+                        _, trace = runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
+                        b = time.perf_counter()
+                        self.register('run_connected_probe', a, b, config, runner, trace)
+                except:
+                    self.log(f"An exception occurred {type(x).__name__} ")
+            with open(self.log_file, 'a') as f:
             print('done', file=f)
