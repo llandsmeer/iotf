@@ -7,9 +7,13 @@ import subprocess
 import time
 import json
 
-from groq.runner import tsp
-from groq.runtime import driver as runtime
-import groq.runtime
+try:
+    from groq.runner import tsp
+    from groq.runtime import driver as runtime
+    import groq.runtime
+    supported = True
+except ImportError:
+    supported = False
 
 from .. import model
 from .base_runner import BaseRunner
@@ -21,9 +25,9 @@ class GroqchipRunner(BaseRunner):
     GroqChip implementation
     using on chip persistent data.
     '''
-    
+
     def is_supported(self):
-        return os.system('which groq-compiler') == 0
+        return supported
 
     def setup(self, ngj, ncells, argconfig):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
