@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ioperf.runners.tests API documentation</title>
+<title>ioperf.runners.groqchip_runner_opt2_nocopy API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,32 +19,160 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ioperf.runners.tests</code></h1>
+<h1 class="title">Module <code>ioperf.runners.groqchip_runner_opt2_nocopy</code></h1>
 </header>
 <section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import os
+
+import tempfile
+import numpy as np
+import tensorflow as tf
+import subprocess
+import time
+import json
+
+try:
+    from groq.runner import tsp
+    from groq.runtime import driver as runtime
+    import groq.runtime
+    supported = True
+except ImportError:
+    supported = False
+
+from .. import model
+from .base_runner import BaseRunner
+
+__all__ = [&#39;GroqchipRunnerOpt2NoCopy&#39;]
+
+class GroqchipRunnerOpt2NoCopy(BaseRunner):
+    &#39;&#39;&#39;
+    GroqChip implementation
+    using on chip persistent data.
+    &#39;&#39;&#39;
+
+    def is_supported(self):
+        return supported
+
+    def setup(self, ngj, ncells, argconfig):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
+        self.iop_path = tempfile.mktemp() + &#34;.iop&#34;
+        self.aa_path = tempfile.mktemp()
+        self.compiler_stats = {}
+        self.compile()
+        self.assemble()
+
+    def assemble(self):
+        raise NotImplementedError()
+
+    def compile(self):
+        raise NotImplementedError()
+
+    def run_unconnected(self, nms, state, probe=False, **kwargs):
+        raise NotImplementedError()
+
+    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        raise NotImplementedError()</code></pre>
+</details>
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt><code class="name"><a title="ioperf.runners.tests.test_base_runner" href="test_base_runner.html">ioperf.runners.tests.test_base_runner</a></code></dt>
+<dt id="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy"><code class="flex name class">
+<span>class <span class="ident">GroqchipRunnerOpt2NoCopy</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>GroqChip implementation
+using on chip persistent data.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroqchipRunnerOpt2NoCopy(BaseRunner):
+    &#39;&#39;&#39;
+    GroqChip implementation
+    using on chip persistent data.
+    &#39;&#39;&#39;
+
+    def is_supported(self):
+        return supported
+
+    def setup(self, ngj, ncells, argconfig):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
+        self.iop_path = tempfile.mktemp() + &#34;.iop&#34;
+        self.aa_path = tempfile.mktemp()
+        self.compiler_stats = {}
+        self.compile()
+        self.assemble()
+
+    def assemble(self):
+        raise NotImplementedError()
+
+    def compile(self):
+        raise NotImplementedError()
+
+    def run_unconnected(self, nms, state, probe=False, **kwargs):
+        raise NotImplementedError()
+
+    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        raise NotImplementedError()</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.assemble"><code class="name flex">
+<span>def <span class="ident">assemble</span></span>(<span>self)</span>
+</code></dt>
 <dd>
 <div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def assemble(self):
+    raise NotImplementedError()</code></pre>
+</details>
 </dd>
-<dt><code class="name"><a title="ioperf.runners.tests.test_groqchip_runner" href="test_groqchip_runner.html">ioperf.runners.tests.test_groqchip_runner</a></code></dt>
+<dt id="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.compile"><code class="name flex">
+<span>def <span class="ident">compile</span></span>(<span>self)</span>
+</code></dt>
 <dd>
 <div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="ioperf.runners.tests.test_onnx_cpu_runner" href="test_onnx_cpu_runner.html">ioperf.runners.tests.test_onnx_cpu_runner</a></code></dt>
-<dd>
-<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compile(self):
+    raise NotImplementedError()</code></pre>
+</details>
 </dd>
 </dl>
-</section>
-<section>
-</section>
-<section>
-</section>
-<section>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.is_supported" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.is_supported">is_supported</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.tagline" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.tagline">tagline</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -55,14 +183,18 @@
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ioperf.runners" href="../index.html">ioperf.runners</a></code></li>
+<li><code><a title="ioperf.runners" href="index.html">ioperf.runners</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
-<li><code><a title="ioperf.runners.tests.test_base_runner" href="test_base_runner.html">ioperf.runners.tests.test_base_runner</a></code></li>
-<li><code><a title="ioperf.runners.tests.test_groqchip_runner" href="test_groqchip_runner.html">ioperf.runners.tests.test_groqchip_runner</a></code></li>
-<li><code><a title="ioperf.runners.tests.test_onnx_cpu_runner" href="test_onnx_cpu_runner.html">ioperf.runners.tests.test_onnx_cpu_runner</a></code></li>
+<li>
+<h4><code><a title="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy" href="#ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy">GroqchipRunnerOpt2NoCopy</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.assemble" href="#ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.assemble">assemble</a></code></li>
+<li><code><a title="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.compile" href="#ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy.compile">compile</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

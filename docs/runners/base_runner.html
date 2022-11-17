@@ -33,6 +33,19 @@ class BaseRunner:
     Common interface description
     &#39;&#39;&#39;
 
+    def tagline(self):
+        &#39;&#39;&#39;
+        This function should output a single line of data about hardware
+        configuration specific to the runner
+        &#39;&#39;&#39;
+        return &#39;&lt;no-tagline&gt;&#39;
+
+    def is_supported(self):
+        &#39;&#39;&#39;
+        Return True on supported systems, false on non-supported systems
+        &#39;&#39;&#39;
+        raise NotImplementedError()
+
     def setup(self, *, ngj, ncells, argconfig):
         &#39;&#39;&#39;
         Set up functions, context etc to run a simulation.
@@ -89,6 +102,19 @@ class BaseRunner:
     Common interface description
     &#39;&#39;&#39;
 
+    def tagline(self):
+        &#39;&#39;&#39;
+        This function should output a single line of data about hardware
+        configuration specific to the runner
+        &#39;&#39;&#39;
+        return &#39;&lt;no-tagline&gt;&#39;
+
+    def is_supported(self):
+        &#39;&#39;&#39;
+        Return True on supported systems, false on non-supported systems
+        &#39;&#39;&#39;
+        raise NotImplementedError()
+
     def setup(self, *, ngj, ncells, argconfig):
         &#39;&#39;&#39;
         Set up functions, context etc to run a simulation.
@@ -125,10 +151,28 @@ class BaseRunner:
 <ul class="hlist">
 <li><a title="ioperf.runners.graphcore_runner.GraphcoreRunner" href="graphcore_runner.html#ioperf.runners.graphcore_runner.GraphcoreRunner">GraphcoreRunner</a></li>
 <li><a title="ioperf.runners.groqchip_runner.GroqchipRunner" href="groqchip_runner.html#ioperf.runners.groqchip_runner.GroqchipRunner">GroqchipRunner</a></li>
+<li><a title="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1" href="groqchip_runner_opt1.html#ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1">GroqchipRunnerOpt1</a></li>
+<li><a title="ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy" href="groqchip_runner_opt2_nocopy.html#ioperf.runners.groqchip_runner_opt2_nocopy.GroqchipRunnerOpt2NoCopy">GroqchipRunnerOpt2NoCopy</a></li>
 <li><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></li>
 </ul>
 <h3>Methods</h3>
 <dl>
+<dt id="ioperf.runners.base_runner.BaseRunner.is_supported"><code class="name flex">
+<span>def <span class="ident">is_supported</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return True on supported systems, false on non-supported systems</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def is_supported(self):
+    &#39;&#39;&#39;
+    Return True on supported systems, false on non-supported systems
+    &#39;&#39;&#39;
+    raise NotImplementedError()</code></pre>
+</details>
+</dd>
 <dt id="ioperf.runners.base_runner.BaseRunner.run_unconnected"><code class="name flex">
 <span>def <span class="ident">run_unconnected</span></span>(<span>self, nsteps, state, probe=False, **kwargs)</span>
 </code></dt>
@@ -207,6 +251,24 @@ such that it can be passed unchanged to make_tf_function()</p></div>
         self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())</code></pre>
 </details>
 </dd>
+<dt id="ioperf.runners.base_runner.BaseRunner.tagline"><code class="name flex">
+<span>def <span class="ident">tagline</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function should output a single line of data about hardware
+configuration specific to the runner</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def tagline(self):
+    &#39;&#39;&#39;
+    This function should output a single line of data about hardware
+    configuration specific to the runner
+    &#39;&#39;&#39;
+    return &#39;&lt;no-tagline&gt;&#39;</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -228,10 +290,12 @@ such that it can be passed unchanged to make_tf_function()</p></div>
 <li>
 <h4><code><a title="ioperf.runners.base_runner.BaseRunner" href="#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></code></h4>
 <ul class="">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.is_supported" href="#ioperf.runners.base_runner.BaseRunner.is_supported">is_supported</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.setup_using_model_config" href="#ioperf.runners.base_runner.BaseRunner.setup_using_model_config">setup_using_model_config</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.tagline" href="#ioperf.runners.base_runner.BaseRunner.tagline">tagline</a></code></li>
 </ul>
 </li>
 </ul>

@@ -45,6 +45,9 @@ class OnnxBaseRunner(BaseRunner):
     &#39;&#39;&#39;
     provider = &#39;&lt;placeholder&gt;&#39;
 
+    def is_supported(self):
+        return self.provider in ort.get_available_providers()
+
     def setup(self, *, ngj, ncells, argconfig, opset=16):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig, opset=opset)
         self.ort_session = self.make_ort_session()
@@ -129,6 +132,9 @@ in child classes to specify options.</p></div>
     in child classes to specify options.
     &#39;&#39;&#39;
     provider = &#39;&lt;placeholder&gt;&#39;
+
+    def is_supported(self):
+        return self.provider in ort.get_available_providers()
 
     def setup(self, *, ngj, ncells, argconfig, opset=16):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig, opset=opset)
@@ -240,9 +246,11 @@ in child classes to specify options.</p></div>
 <ul class="hlist">
 <li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
 <ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.is_supported" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.is_supported">is_supported</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.tagline" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.tagline">tagline</a></code></li>
 </ul>
 </li>
 </ul>

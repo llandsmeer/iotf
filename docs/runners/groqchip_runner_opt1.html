@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ioperf.runners.groqchip_runner API documentation</title>
+<title>ioperf.runners.groqchip_runner_opt1 API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ioperf.runners.groqchip_runner</code></h1>
+<h1 class="title">Module <code>ioperf.runners.groqchip_runner_opt1</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -46,12 +46,12 @@ except ImportError:
 from .. import model
 from .base_runner import BaseRunner
 
-__all__ = [&#39;GroqchipRunner&#39;]
+__all__ = [&#39;GroqchipRunnerOpt1&#39;]
 
-class GroqchipRunner(BaseRunner):
+class GroqchipRunnerOpt1(BaseRunner):
     &#39;&#39;&#39;
     GroqChip implementation
-    This implementation is the most naive way of implementing for the GroqChip
+    Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size
     &#39;&#39;&#39;
 
     def is_supported(self):
@@ -104,34 +104,35 @@ class GroqchipRunner(BaseRunner):
         trace = []
         state = np.array(state)
 
-        program = tsp.create_tsp_runner(self.iop_path)
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0]) 
 
+        inputs = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+
+        inputs_iodesc.tensors[0].from_host(state, inputs[0])
+   
         for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state)[&#34;state_next&#34;]
+            for _ in range(40/2*nms):
+                dptr.invoke(inputs[0],outputs[0])
+                dptr.invoke(outputs[0],inputs[0])
             if probe:
+                outputs_iodesc.tensors[0].to_host(inputs[0],state)
                 trace.append(state[0, :])
         if probe:
             return tf.constant(state), np.array(trace)
         else:
             return tf.constant(state)
+        
+        dptr.close()
+        print(data)
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-        trace = []
-        state = state.numpy()
-        gj_src = gj_src.numpy()
-        gj_tgt = gj_tgt.numpy()
-        g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
-        program = tsp.create_tsp_runner(self.iop_path)
-        for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)[&#34;state_next&#34;]
-            if probe:
-                trace.append(state[0, :])
-        if probe:
-            return tf.constant(state), np.array(trace)
-        else:
-            return tf.constant(state)</code></pre>
+        print(&#34;[ERROR] not an option as DMA buffers are not off the same size&#34;)
+        raise NotImplementedError()</code></pre>
 </details>
 </section>
 <section>
@@ -143,20 +144,20 @@ class GroqchipRunner(BaseRunner):
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="ioperf.runners.groqchip_runner.GroqchipRunner"><code class="flex name class">
-<span>class <span class="ident">GroqchipRunner</span></span>
+<dt id="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1"><code class="flex name class">
+<span>class <span class="ident">GroqchipRunnerOpt1</span></span>
 </code></dt>
 <dd>
 <div class="desc"><p>GroqChip implementation
-This implementation is the most naive way of implementing for the GroqChip</p></div>
+Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class GroqchipRunner(BaseRunner):
+<pre><code class="python">class GroqchipRunnerOpt1(BaseRunner):
     &#39;&#39;&#39;
     GroqChip implementation
-    This implementation is the most naive way of implementing for the GroqChip
+    Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size
     &#39;&#39;&#39;
 
     def is_supported(self):
@@ -209,34 +210,35 @@ This implementation is the most naive way of implementing for the GroqChip</p></
         trace = []
         state = np.array(state)
 
-        program = tsp.create_tsp_runner(self.iop_path)
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0]) 
 
+        inputs = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+
+        inputs_iodesc.tensors[0].from_host(state, inputs[0])
+   
         for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state)[&#34;state_next&#34;]
+            for _ in range(40/2*nms):
+                dptr.invoke(inputs[0],outputs[0])
+                dptr.invoke(outputs[0],inputs[0])
             if probe:
+                outputs_iodesc.tensors[0].to_host(inputs[0],state)
                 trace.append(state[0, :])
         if probe:
             return tf.constant(state), np.array(trace)
         else:
             return tf.constant(state)
+        
+        dptr.close()
+        print(data)
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-        trace = []
-        state = state.numpy()
-        gj_src = gj_src.numpy()
-        gj_tgt = gj_tgt.numpy()
-        g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
-        program = tsp.create_tsp_runner(self.iop_path)
-        for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)[&#34;state_next&#34;]
-            if probe:
-                trace.append(state[0, :])
-        if probe:
-            return tf.constant(state), np.array(trace)
-        else:
-            return tf.constant(state)</code></pre>
+        print(&#34;[ERROR] not an option as DMA buffers are not off the same size&#34;)
+        raise NotImplementedError()</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -244,7 +246,7 @@ This implementation is the most naive way of implementing for the GroqChip</p></
 </ul>
 <h3>Methods</h3>
 <dl>
-<dt id="ioperf.runners.groqchip_runner.GroqchipRunner.assemble"><code class="name flex">
+<dt id="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.assemble"><code class="name flex">
 <span>def <span class="ident">assemble</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -271,7 +273,7 @@ This implementation is the most naive way of implementing for the GroqChip</p></
         raise Exception(&#34;Assembler call failed&#34;)</code></pre>
 </details>
 </dd>
-<dt id="ioperf.runners.groqchip_runner.GroqchipRunner.compile"><code class="name flex">
+<dt id="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.compile"><code class="name flex">
 <span>def <span class="ident">compile</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -330,10 +332,10 @@ This implementation is the most naive way of implementing for the GroqChip</p></
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="ioperf.runners.groqchip_runner.GroqchipRunner" href="#ioperf.runners.groqchip_runner.GroqchipRunner">GroqchipRunner</a></code></h4>
+<h4><code><a title="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1" href="#ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1">GroqchipRunnerOpt1</a></code></h4>
 <ul class="">
-<li><code><a title="ioperf.runners.groqchip_runner.GroqchipRunner.assemble" href="#ioperf.runners.groqchip_runner.GroqchipRunner.assemble">assemble</a></code></li>
-<li><code><a title="ioperf.runners.groqchip_runner.GroqchipRunner.compile" href="#ioperf.runners.groqchip_runner.GroqchipRunner.compile">compile</a></code></li>
+<li><code><a title="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.assemble" href="#ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.assemble">assemble</a></code></li>
+<li><code><a title="ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.compile" href="#ioperf.runners.groqchip_runner_opt1.GroqchipRunnerOpt1.compile">compile</a></code></li>
 </ul>
 </li>
 </ul>
