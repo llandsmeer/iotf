@@ -16,6 +16,13 @@ class BaseRunner:
         '''
         raise NotImplementedError()
 
+    def setup_using_model_config(self, model_config, *, gap_junctions):
+        assert gap_junctions in {True, False}
+        if gap_junctions:
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+        else:
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         '''
         Run without gap junctions (only works if setup was called

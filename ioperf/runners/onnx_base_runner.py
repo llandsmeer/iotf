@@ -39,7 +39,7 @@ class OnnxBaseRunner(BaseRunner):
         # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
         # opts.inter_op_num_threads = 0
         # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
-        return ort.InferenceSession(self.onnx_path, sess_options, providers=self.provider)
+        return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         args = { 'state': ort.OrtValue.ortvalue_from_numpy(state.numpy()) }
@@ -59,8 +59,9 @@ class OnnxBaseRunner(BaseRunner):
         return self._run(nms, args, probe)
 
     def _run(self, nms, args, probe):
-        trace = []
-        trace.append(args['state'][0, :])
+        if probe:
+            trace = []
+            trace.append(args['state'].numpy()[0, :])
         for _ in range(nms):
             for _ in range(40):
                 outputs = self.ort_session.run(None, args)
