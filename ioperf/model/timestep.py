@@ -1,55 +1,6 @@
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
 import tensorflow as tf
-#tf.compat.v1.disable_eager_execution()
 
 NUM_STATE_VARS = 14
-def create(ncells, dtype=tf.float32):
-
-    # Soma State
-    V_soma          = -60.0
-    soma_k          =   0.7423159
-    soma_l          =   0.0321349
-    soma_h          =   0.3596066
-    soma_n          =   0.2369847
-    soma_x          =   0.1
-
-    # Axon state
-    V_axon          = -60.0
-    axon_Sodium_h   =   0.9
-    axon_Potassium_x=   0.2369847
-
-    # Dend state
-    V_dend          = -60.0
-    dend_Ca2Plus    =   3.715
-    dend_Calcium_r  =   0.0113
-    dend_Potassium_s=   0.0049291
-    dend_Hcurrent_q =   0.0337836
-
-    return tf.constant([[
-
-        # Soma state
-        [V_soma]*ncells,
-        [soma_k]*ncells,
-        [soma_l]*ncells,
-        [soma_h]*ncells,
-        [soma_n]*ncells,
-        [soma_x]*ncells,
-
-        # Axon state
-        [V_axon]*ncells,
-        [axon_Sodium_h]*ncells,
-        [axon_Potassium_x]*ncells,
-
-        # Dend state
-        [V_dend]*ncells,
-        [dend_Ca2Plus]*ncells,
-        [dend_Calcium_r]*ncells,
-        [dend_Potassium_s]*ncells,
-        [dend_Hcurrent_q]*ncells,
-
-        ]], dtype=dtype)
 
 def timestep(
         state,
@@ -88,31 +39,32 @@ def timestep(
 
         # Stimulus parameter
         I_app           =   0.0,
-        ngapps = 1,
-        Ggapp = 0.05
+        gj_src          = None,
+        gj_tgt          = None,
+        g_gj            = 0.05
         ):
 
-    assert state.shape[1] == NUM_STATE_VARS
+    assert state.shape[0] == NUM_STATE_VARS
 
     # Soma state
-    V_soma              = state[:, 0]
-    soma_k              = state[:, 1]
-    soma_l              = state[:, 2]
-    soma_h              = state[:, 3]
-    soma_n              = state[:, 4]
-    soma_x              = state[:, 5]
+    V_soma              = state[0, :]
+    soma_k              = state[1, :]
+    soma_l              = state[2, :]
+    soma_h              = state[3, :]
+    soma_n              = state[4, :]
+    soma_x              = state[5, :]
 
     # Axon state
-    V_axon              = state[:, 6]
-    axon_Sodium_h       = state[:, 7]
-    axon_Potassium_x    = state[:, 8]
+    V_axon              = state[6, :]
+    axon_Sodium_h       = state[7, :]
+    axon_Potassium_x    = state[8, :]
 
     # Dend state
-    V_dend              = state[:, 9]
-    dend_Ca2Plus        = state[:,10]
-    dend_Calcium_r      = state[:,11]
-    dend_Potassium_s    = state[:,12]
-    dend_Hcurrent_q     = state[:,13]
+    V_dend              = state[9, :]
+    dend_Ca2Plus        = state[10,:]
+    dend_Calcium_r      = state[11,:]
+    dend_Potassium_s    = state[12,:]
+    dend_Hcurrent_q     = state[13,:]
 
     ########## SOMA UPDATE ##########
 
@@ -193,17 +145,15 @@ def timestep(
     ########## DEND UPDATE ##########
 
     # CURRENT: Dend application current (I_app)
-    I_gapp = 0
-    for i in range(1, 1 + ngapps):
-        for sign in [-1, +1]:
-            gap_other = tf.roll(V_dend, i * sign, axis=1)
-            gap_vdiff = gap_other - V_dend
-            Gcx36 = 0.8 * tf.exp(-0.01*gap_vdiff*gap_vdiff) + 0.2
-            I_gapp = I_gapp + Gcx36 * Ggapp * gap_vdiff
-    #for i in range(1, 1 + ngapps):
-        #dend_next = tf.roll(V_dend, -i, axis=1)
-        #dend_prev = tf.roll(V_dend, +i, axis=1)
-        #I_gapp = Ggapp*(dend_prev - V_dend) + Ggapp*(dend_next - V_dend)
+
+    if gj_src is not None and gj_tgt is not None:
+        vdiff = tf.gather(V_dend, gj_src) - tf.gather(V_dend, gj_tgt)
+        cx36_current_per_gj = (0.2 + 0.8 * tf.exp(-vdiff*vdiff / 100)) * vdiff * g_gj
+        I_gapp = tf.tensor_scatter_nd_add(tf.zeros_like(V_dend), tf.reshape(gj_tgt, (-1, 1)),
+            cx36_current_per_gj)
+    else:
+        I_gapp = 0
+
     dend_I_application = -I_app - I_gapp
 
     # CURRENT: Dend leak current (ld)
@@ -263,116 +213,4 @@ def timestep(
         dend_Calcium_r      + dend_dr_dt * delta,
         dend_Potassium_s    + dend_ds_dt * delta,
         dend_Hcurrent_q     + dend_dq_dt * delta,
-        ], axis=1)
-
-def build_model(ncells, cell_params=(), nsteps=1, unroll=False, **fixed_params):
-    input_state = tf.keras.Input((NUM_STATE_VARS, ncells), name='state', batch_size=1)
-    input_params = [tf.keras.Input(ncells, name=name) for name in cell_params]
-    overrides = dict(zip(cell_params, input_params))
-    state = input_state
-    if unroll:
-        if nsteps >= 1:
-            import warnings
-            warnings.warn('Explicit unrolling is slow, use the ONNX Loop opcode')
-        # unrolling is ine
-        for _ in range(nsteps):
-            state = timestep(state, **fixed_params, **overrides)
-        output = state
-    else:
-        raise NotImplementedError('Sorry can\'t get this to work')
-        def cond(_):
-            return True
-        def body(state):
-            return timestep(state, **fixed_params, **overrides),
-        output, = tf.while_loop(
-            cond=cond,
-            body=body,
-            loop_vars=[state],
-            maximum_iterations=nsteps,
-            shape_invariants=[input_state.get_shape()],
-            parallel_iterations=1,
-            name='simulation_loop'
-        )
-
-    model = tf.keras.Model(
-        inputs=(input_state, *input_params),
-        outputs=output
-        )
-    spec = [tf.TensorSpec((1, 14, ncells), tf.float32, name='state')]
-    for name in cell_params:
-        spec.append(tf.TensorSpec((1, ncells), tf.float32, name=name))
-    #convert
-    return spec, model
-
-def convert_to_onnx(spec, model, output_path='/tmp/io.onnx'):
-    import tf2onnx
-    tf2onnx.convert.from_keras(
-            model=model,
-            input_signature=spec,
-            opset=11,
-            output_path=output_path
-            )
-
-def add_loop_opcode(input_path='onnx'):
-    import onnx
-    model = onnx.load(input_path)
-
-def main():
-    import time
-    import random
-    import matplotlib.pyplot as plt
-
-    print('building model')
-    ncells = 4
-    spec, model = build_model(ncells, nsteps=2, unroll=True, cell_params=('g_CaL',))
-    print('converting model')
-    convert_to_onnx(spec, model)
-
-    state = create(ncells)
-    trace = []
-    g_CaL = tf.constant([random.random()*2 for _ in range(ncells)])
-    for _ in range(500):
-        print('loop')
-        state = model((state, g_CaL))
-        trace.append( state[0][0].numpy() )
-    plt.plot(trace)
-    plt.show()
-
-def build_function_spec(fixed=(), variable=()):
-    fixed = set(fixed)
-    variable = set(variable)
-    spec = []
-    for param in list(inspect.signature(timestep).parameters.values()):
-        if param.default == param.empty:
-            assert param.name == 'state'
-        if param.name == 'state':
-            spec.append(tf.TensorSpec((14, ncells), tf.float32, name='state'))
-        elif param.name in fixed:
-            fixed.remove(param.name)
-            spec.append(tf.TensorSpec((), tf.float32, name=param.name))
-        elif param.name in variable:
-            variable.remove(param.name)
-            spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
-        else:
-            spec.append(tf.TensorSpec((ncells,), tf.float32, name=param.name))
-    assert not fixed
-    assert not variable
-    return spec
-
-
-def main2():
-    import tf2onnx
-    import inspect
-    assert argspec.keywords is None and argspec.varargs is None
-    for k, v in zip(argspec.args, argspec.defaults):
-        print(k, v)
-    return
-    spec = []
-    tf2onnx.convert.from_function(
-            function=tf.function(timestep), 
-            input_signature=spec,
-            output_path='/tmp/io2.onnx')
-
-
-if __name__ == '__main__':
-    main2()
+        ], axis=0)

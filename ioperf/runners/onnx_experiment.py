@@ -1,9 +1,3 @@
-import sys
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
-sys.path.append('/home/llandsmeer/repos/llandsmeer/iotf')
-
 import time
 import tempfile
 
@@ -12,8 +6,7 @@ import onnxruntime as ort
 import tensorflow as tf
 import tf2onnx
 
-import builder3d
-
+from .. import model
 
 ONNX_MODEL_PATH = tempfile.mktemp()
 
@@ -42,11 +35,11 @@ def run_experiment(
     # THE INTIIAL VALUE AND CONFIGURATION
     np.random.seed(0)
     if gj:
-        gj_src, gj_tgt = builder3d.sample_connections_3d(
+        gj_src, gj_tgt = model.sample_connections_3d(
                 nneurons, rmax=4)
     else:
         gj_src, gj_tgt = [], []
-    state0 = builder3d.make_initial_neuron_state(nneurons, dtype=tf.float32)
+    state0 = model.make_initial_neuron_state(nneurons, dtype=tf.float32)
     cell_config = {}
     for var, zero, delta in randomize_cell_params:
         cell_config[var] = (zero + delta * np.random.random(nneurons)).astype('float32')
@@ -55,7 +48,7 @@ def run_experiment(
     argconfig = {}
     for var, _, _ in randomize_cell_params:
         argconfig[var] = 'VARY'
-    tf_function = builder3d.make_function(
+    tf_function = model.make_function(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig
@@ -137,5 +130,5 @@ def run_experiment(
             'trace': trace
     }
 
-if __name__ == '__main__':
+def main():
     print( run_experiment(4**3) )

@@ -9,19 +9,18 @@ import onnxruntime as ort
 import tensorflow as tf
 import tf2onnx
 import time
-import builder3d
+
+from .. import model
 
 # the options.
 EP_list = ['TensorrtExecutionProvider','CUDAExecutionProvider', 'CPUExecutionProvider']
 
-print('Backend', ort.get_device())
-
 def get_slowdown(nneurons):
-    gj_src, gj_tgt = builder3d.sample_connections_3d(
+    gj_src, gj_tgt = model.sample_connections_3d(
             nneurons, rmax=4)
-    state = builder3d.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
+    state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
 
-    tf_function = builder3d.make_function(
+    tf_function = model.make_function(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=dict(
@@ -37,7 +36,7 @@ def get_slowdown(nneurons):
 
     sess_options = ort.SessionOptions()
     sess_options.use_deterministic_compute = True
-    
+
     # GRAPH optimalizations
     #   GraphOptimizationLevel::ORT_DISABLE_ALL -> Disables all optimizations
     #   GraphOptimizationLevel::ORT_ENABLE_BASIC -> Enables basic optimizations
@@ -48,13 +47,12 @@ def get_slowdown(nneurons):
 
     # ENABLE PROFILING
     # sess_options.enable_profiling = True
-    
+
     # ENABLE MULTI TREAD / NODE   (intra == openMP inside a node, INTRA == multiNODE)
     # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
     # opts.inter_op_num_threads = 0
     # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
 
-  
     ort_sess = ort.InferenceSession("/tmp/io.onnx", sess_options)
 
     a = time.time()
@@ -69,6 +67,7 @@ def get_slowdown(nneurons):
         niter += 1
     return 40000 / niter
 
-if __name__ == '__main__':
+def main():
+    print('Backend', ort.get_device())
     for sqrt3 in 4,5,6,7,8,9,10:
         print(sqrt3**3, get_slowdown(sqrt3**3))
