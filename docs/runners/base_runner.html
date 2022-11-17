@@ -44,6 +44,13 @@ class BaseRunner:
         &#39;&#39;&#39;
         raise NotImplementedError()
 
+    def setup_using_model_config(self, model_config, *, gap_junctions):
+        assert gap_junctions in {True, False}
+        if gap_junctions:
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+        else:
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         &#39;&#39;&#39;
         Run without gap junctions (only works if setup was called
@@ -93,6 +100,13 @@ class BaseRunner:
         &#39;&#39;&#39;
         raise NotImplementedError()
 
+    def setup_using_model_config(self, model_config, *, gap_junctions):
+        assert gap_junctions in {True, False}
+        if gap_junctions:
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+        else:
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         &#39;&#39;&#39;
         Run without gap junctions (only works if setup was called
@@ -110,6 +124,7 @@ class BaseRunner:
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li><a title="ioperf.runners.graphcore_runner.GraphcoreRunner" href="graphcore_runner.html#ioperf.runners.graphcore_runner.GraphcoreRunner">GraphcoreRunner</a></li>
+<li><a title="ioperf.runners.groqchip_runner.GroqchipRunner" href="groqchip_runner.html#ioperf.runners.groqchip_runner.GroqchipRunner">GroqchipRunner</a></li>
 <li><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></li>
 </ul>
 <h3>Methods</h3>
@@ -175,6 +190,23 @@ such that it can be passed unchanged to make_tf_function()</p></div>
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
+<dt id="ioperf.runners.base_runner.BaseRunner.setup_using_model_config"><code class="name flex">
+<span>def <span class="ident">setup_using_model_config</span></span>(<span>self, model_config, *, gap_junctions)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setup_using_model_config(self, model_config, *, gap_junctions):
+    assert gap_junctions in {True, False}
+    if gap_junctions:
+        self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+    else:
+        self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -199,6 +231,7 @@ such that it can be passed unchanged to make_tf_function()</p></div>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
 <li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup_using_model_config" href="#ioperf.runners.base_runner.BaseRunner.setup_using_model_config">setup_using_model_config</a></code></li>
 </ul>
 </li>
 </ul>

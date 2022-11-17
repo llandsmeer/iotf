@@ -36,6 +36,7 @@ implementations. Runners are expected to implement the BaseRunner class.
 
 from .base_runner import BaseRunner
 from .graphcore_runner import GraphcoreRunner
+from .groqchip_runner import GroqchipRunner
 from .onnx_base_runner import OnnxBaseRunner
 from .onnx_cpu_runner import OnnxCpuRunner
 from .onnx_cuda_runner import OnnxCUDARunner
@@ -43,6 +44,7 @@ from .onnx_tensorrt_runner import OnnxTensorRTRunner
 
 __all__ = [
     &#39;BaseRunner&#39;,
+    &#39;GroqchipRunner&#39;,
     &#39;GraphcoreRunner&#39;,
     &#39;OnnxBaseRunner&#39;,
     &#39;OnnxCpuRunner&#39;,
@@ -52,6 +54,7 @@ __all__ = [
 ]
 
 runners = [
+    GroqchipRunner,
     GraphcoreRunner,
     OnnxCpuRunner,
     OnnxCUDARunner,
@@ -70,6 +73,10 @@ Available runners with implementation
 <div class="desc"></div>
 </dd>
 <dt><code class="name"><a title="ioperf.runners.graphcore_runner" href="graphcore_runner.html">ioperf.runners.graphcore_runner</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="ioperf.runners.groqchip_runner" href="groqchip_runner.html">ioperf.runners.groqchip_runner</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -134,6 +141,13 @@ Available runners with implementation
         &#39;&#39;&#39;
         raise NotImplementedError()
 
+    def setup_using_model_config(self, model_config, *, gap_junctions):
+        assert gap_junctions in {True, False}
+        if gap_junctions:
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+        else:
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         &#39;&#39;&#39;
         Run without gap junctions (only works if setup was called
@@ -151,6 +165,7 @@ Available runners with implementation
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li><a title="ioperf.runners.graphcore_runner.GraphcoreRunner" href="graphcore_runner.html#ioperf.runners.graphcore_runner.GraphcoreRunner">GraphcoreRunner</a></li>
+<li><a title="ioperf.runners.groqchip_runner.GroqchipRunner" href="groqchip_runner.html#ioperf.runners.groqchip_runner.GroqchipRunner">GroqchipRunner</a></li>
 <li><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></li>
 </ul>
 <h3>Methods</h3>
@@ -214,6 +229,23 @@ such that it can be passed unchanged to make_tf_function()</p></div>
     such that it can be passed unchanged to make_tf_function()
     &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.BaseRunner.setup_using_model_config"><code class="name flex">
+<span>def <span class="ident">setup_using_model_config</span></span>(<span>self, model_config, *, gap_junctions)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setup_using_model_config(self, model_config, *, gap_junctions):
+    assert gap_junctions in {True, False}
+    if gap_junctions:
+        self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+    else:
+        self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())</code></pre>
 </details>
 </dd>
 </dl>
@@ -286,6 +318,172 @@ such that it can be passed unchanged to make_tf_function()</p></div>
 </li>
 </ul>
 </dd>
+<dt id="ioperf.runners.GroqchipRunner"><code class="flex name class">
+<span>class <span class="ident">GroqchipRunner</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>GroqChip implementation
+This implementation is the most naive way of implementing for the GroqChip</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroqchipRunner(BaseRunner):
+    &#39;&#39;&#39;
+    GroqChip implementation
+    This implementation is the most naive way of implementing for the GroqChip
+    &#39;&#39;&#39;
+    def setup(self, ngj, ncells, argconfig):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
+        self.iop_path = tempfile.mktemp() + &#34;.iop&#34;
+        self.aa_path = tempfile.mktemp()
+        self.compiler_stats = {}
+        self.compile()
+        self.assemble()
+
+    def assemble(self):
+        print(f&#34;[groqAssembler] Starting Groq compiler {self.iop_path}&#34;)
+        status = subprocess.call(
+            [
+                &#34;aa-latest&#34;,
+                &#34;--name&#34;,
+                f&#34;IOTimestep&#34;,
+                &#34;-i&#34;,
+                self.aa_path + &#34;.aa&#34;,
+                &#34;--output-iop&#34;,
+                self.iop_path,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Assembler call failed&#34;)
+
+    def compile(self):
+        print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+        status = subprocess.call(
+            [
+            &#34;groq-compiler&#34;,
+            f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+            &#34;-o&#34;,
+            self.aa_path,
+            self.onnx_path,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Compiler call failed&#34;)
+
+        with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+            self.compiler_stats = json.load(f)
+
+    def run_unconnected(self, nms, state, probe=False, **kwargs):
+        trace = []
+        state = np.array(state)
+
+        program = tsp.create_tsp_runner(self.iop_path)
+
+        for _ in range(nms):
+            for _ in range(40*nms):
+                state = program(state=state)[&#34;state_next&#34;]
+            if probe:
+                trace.append(state[0, :])
+        if probe:
+            return tf.constant(state), np.array(trace)
+        else:
+            return tf.constant(state)
+
+    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        tarce = []
+        state = np.array(state)
+        gj_src = np.array(gj_src)
+        gj_tgt = np.array(gj_tgt)
+        g_gj = np.array(g_gj)
+
+        program = tsp.create_tsp_runner(self.iop_path)
+        
+        for _ in range(nms):
+            for _ in range(40*nms):
+                state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)[&#34;state_next&#34;]
+            if probe:
+                trace.append(state[0, :])
+        if probe:
+            return tf.constant(state), np.array(trace)
+        else:
+            return tf.constant(state)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.runners.GroqchipRunner.assemble"><code class="name flex">
+<span>def <span class="ident">assemble</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def assemble(self):
+    print(f&#34;[groqAssembler] Starting Groq compiler {self.iop_path}&#34;)
+    status = subprocess.call(
+        [
+            &#34;aa-latest&#34;,
+            &#34;--name&#34;,
+            f&#34;IOTimestep&#34;,
+            &#34;-i&#34;,
+            self.aa_path + &#34;.aa&#34;,
+            &#34;--output-iop&#34;,
+            self.iop_path,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Assembler call failed&#34;)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.GroqchipRunner.compile"><code class="name flex">
+<span>def <span class="ident">compile</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compile(self):
+    print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+    status = subprocess.call(
+        [
+        &#34;groq-compiler&#34;,
+        f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+        &#34;-o&#34;,
+        self.aa_path,
+        self.onnx_path,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Compiler call failed&#34;)
+
+    with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+        self.compiler_stats = json.load(f)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
 <dt id="ioperf.runners.OnnxBaseRunner"><code class="flex name class">
 <span>class <span class="ident">OnnxBaseRunner</span></span>
 </code></dt>
@@ -327,7 +525,7 @@ in child classes to specify options.</p></div>
         # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
         # opts.inter_op_num_threads = 0
         # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
-        return ort.InferenceSession(self.onnx_path, sess_options, providers=self.provider)
+        return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         args = { &#39;state&#39;: ort.OrtValue.ortvalue_from_numpy(state.numpy()) }
@@ -347,8 +545,9 @@ in child classes to specify options.</p></div>
         return self._run(nms, args, probe)
 
     def _run(self, nms, args, probe):
-        trace = []
-        trace.append(args[&#39;state&#39;][0, :])
+        if probe:
+            trace = []
+            trace.append(args[&#39;state&#39;].numpy()[0, :])
         for _ in range(nms):
             for _ in range(40):
                 outputs = self.ort_session.run(None, args)
@@ -406,7 +605,7 @@ in child classes to specify options.</p></div>
     # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
     # opts.inter_op_num_threads = 0
     # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
-    return ort.InferenceSession(self.onnx_path, sess_options, providers=self.provider)</code></pre>
+    return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])</code></pre>
 </details>
 </dd>
 </dl>
@@ -547,6 +746,7 @@ in child classes to specify options.</p></div>
 <ul>
 <li><code><a title="ioperf.runners.base_runner" href="base_runner.html">ioperf.runners.base_runner</a></code></li>
 <li><code><a title="ioperf.runners.graphcore_runner" href="graphcore_runner.html">ioperf.runners.graphcore_runner</a></code></li>
+<li><code><a title="ioperf.runners.groqchip_runner" href="groqchip_runner.html">ioperf.runners.groqchip_runner</a></code></li>
 <li><code><a title="ioperf.runners.onnx_base_runner" href="onnx_base_runner.html">ioperf.runners.onnx_base_runner</a></code></li>
 <li><code><a title="ioperf.runners.onnx_cpu_runner" href="onnx_cpu_runner.html">ioperf.runners.onnx_cpu_runner</a></code></li>
 <li><code><a title="ioperf.runners.onnx_cuda_runner" href="onnx_cuda_runner.html">ioperf.runners.onnx_cuda_runner</a></code></li>
@@ -567,10 +767,18 @@ in child classes to specify options.</p></div>
 <li><code><a title="ioperf.runners.BaseRunner.run_unconnected" href="#ioperf.runners.BaseRunner.run_unconnected">run_unconnected</a></code></li>
 <li><code><a title="ioperf.runners.BaseRunner.run_with_gap_junctions" href="#ioperf.runners.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
 <li><code><a title="ioperf.runners.BaseRunner.setup" href="#ioperf.runners.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.BaseRunner.setup_using_model_config" href="#ioperf.runners.BaseRunner.setup_using_model_config">setup_using_model_config</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="ioperf.runners.GraphcoreRunner" href="#ioperf.runners.GraphcoreRunner">GraphcoreRunner</a></code></h4>
+</li>
+<li>
+<h4><code><a title="ioperf.runners.GroqchipRunner" href="#ioperf.runners.GroqchipRunner">GroqchipRunner</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.runners.GroqchipRunner.assemble" href="#ioperf.runners.GroqchipRunner.assemble">assemble</a></code></li>
+<li><code><a title="ioperf.runners.GroqchipRunner.compile" href="#ioperf.runners.GroqchipRunner.compile">compile</a></code></li>
+</ul>
 </li>
 <li>
 <h4><code><a title="ioperf.runners.OnnxBaseRunner" href="#ioperf.runners.OnnxBaseRunner">OnnxBaseRunner</a></code></h4>

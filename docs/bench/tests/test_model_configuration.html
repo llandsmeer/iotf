@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ioperf.runners.tests API documentation</title>
+<title>ioperf.bench.tests.test_model_configuration API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,26 +19,115 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ioperf.runners.tests</code></h1>
+<h1 class="title">Module <code>ioperf.bench.tests.test_model_configuration</code></h1>
 </header>
 <section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import numpy as np
+import tempfile
+from ..model_configuration import ModelConfiguration
+
+def test_ncells_ngjs():
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    assert x.ncells == 1000
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    assert x.ngj &gt; 1000
+    x = ModelConfiguration.create_new(nneurons=4**3, rmax=2)
+    assert x.ncells == 64
+
+def test_save_load_equal():
+    name = tempfile.mktemp()
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    x.save(name)
+    y = ModelConfiguration.load(name)
+    assert x == y
+
+def test_model_config_random_equal():
+    &#39;&#39;&#39;
+    numpy random.random() is the same across machines
+    up to certain guarantees (eg same numpy version)
+    &#39;&#39;&#39;
+    seed_value = 1234
+    np.random.seed(seed_value)
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    y = ModelConfiguration.create_new(nneurons=10**3)
+    assert x != y
+    np.random.seed(seed_value)
+    y = ModelConfiguration.create_new(nneurons=10**3)
+    assert x == y</code></pre>
+</details>
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt><code class="name"><a title="ioperf.runners.tests.test_base_runner" href="test_base_runner.html">ioperf.runners.tests.test_base_runner</a></code></dt>
+<dt id="ioperf.bench.tests.test_model_configuration.test_model_config_random_equal"><code class="name flex">
+<span>def <span class="ident">test_model_config_random_equal</span></span>(<span>)</span>
+</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>numpy random.random() is the same across machines
+up to certain guarantees (eg same numpy version)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_model_config_random_equal():
+    &#39;&#39;&#39;
+    numpy random.random() is the same across machines
+    up to certain guarantees (eg same numpy version)
+    &#39;&#39;&#39;
+    seed_value = 1234
+    np.random.seed(seed_value)
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    y = ModelConfiguration.create_new(nneurons=10**3)
+    assert x != y
+    np.random.seed(seed_value)
+    y = ModelConfiguration.create_new(nneurons=10**3)
+    assert x == y</code></pre>
+</details>
 </dd>
-<dt><code class="name"><a title="ioperf.runners.tests.test_onnx_cpu_runner" href="test_onnx_cpu_runner.html">ioperf.runners.tests.test_onnx_cpu_runner</a></code></dt>
+<dt id="ioperf.bench.tests.test_model_configuration.test_ncells_ngjs"><code class="name flex">
+<span>def <span class="ident">test_ncells_ngjs</span></span>(<span>)</span>
+</code></dt>
 <dd>
 <div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_ncells_ngjs():
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    assert x.ncells == 1000
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    assert x.ngj &gt; 1000
+    x = ModelConfiguration.create_new(nneurons=4**3, rmax=2)
+    assert x.ncells == 64</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.tests.test_model_configuration.test_save_load_equal"><code class="name flex">
+<span>def <span class="ident">test_save_load_equal</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_save_load_equal():
+    name = tempfile.mktemp()
+    x = ModelConfiguration.create_new(nneurons=10**3)
+    x.save(name)
+    y = ModelConfiguration.load(name)
+    assert x == y</code></pre>
+</details>
 </dd>
 </dl>
-</section>
-<section>
-</section>
-<section>
 </section>
 <section>
 </section>
@@ -51,13 +140,14 @@
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ioperf.runners" href="../index.html">ioperf.runners</a></code></li>
+<li><code><a title="ioperf.bench.tests" href="index.html">ioperf.bench.tests</a></code></li>
 </ul>
 </li>
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
-<ul>
-<li><code><a title="ioperf.runners.tests.test_base_runner" href="test_base_runner.html">ioperf.runners.tests.test_base_runner</a></code></li>
-<li><code><a title="ioperf.runners.tests.test_onnx_cpu_runner" href="test_onnx_cpu_runner.html">ioperf.runners.tests.test_onnx_cpu_runner</a></code></li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="ioperf.bench.tests.test_model_configuration.test_model_config_random_equal" href="#ioperf.bench.tests.test_model_configuration.test_model_config_random_equal">test_model_config_random_equal</a></code></li>
+<li><code><a title="ioperf.bench.tests.test_model_configuration.test_ncells_ngjs" href="#ioperf.bench.tests.test_model_configuration.test_ncells_ngjs">test_ncells_ngjs</a></code></li>
+<li><code><a title="ioperf.bench.tests.test_model_configuration.test_save_load_equal" href="#ioperf.bench.tests.test_model_configuration.test_save_load_equal">test_save_load_equal</a></code></li>
 </ul>
 </li>
 </ul>
