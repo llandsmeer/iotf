@@ -21,6 +21,10 @@ class GroqchipRunner(BaseRunner):
     GroqChip implementation
     using on chip persistent data.
     '''
+    
+    def is_supported(self):
+        return os.system('which groq-compiler') == 0
+
     def setup(self, ngj, ncells, argconfig):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
         self.iop_path = tempfile.mktemp() + ".iop"
