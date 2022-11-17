@@ -14,12 +14,12 @@ import groq.runtime
 from .. import model
 from .base_runner import BaseRunner
 
-__all__ = ['GroqchipRunner']
+__all__ = ['GroqchipRunner_opt1']
 
 class GroqchipRunner(BaseRunner):
     '''
     GroqChip implementation
-    This implementation is the most naive way of implementing for the GroqChip
+    Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size
     '''
     def setup(self, ngj, ncells, argconfig):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
@@ -68,33 +68,32 @@ class GroqchipRunner(BaseRunner):
         trace = []
         state = np.array(state)
 
-        program = tsp.create_tsp_runner(self.iop_path)
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0]) 
 
+        inputs = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+
+        inputs_iodesc.tensors[0].from_host(state, inputs[0])
+   
         for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state)["state_next"]
+            for _ in range(40/2*nms):
+                dptr.invoke(inputs[0],outputs[0])
+                dptr.invoke(outputs[0],inputs[0])
             if probe:
+                outputs_iodesc.tensors[0].to_host(inputs[0],state)
                 trace.append(state[0, :])
         if probe:
             return tf.constant(state), np.array(trace)
         else:
             return tf.constant(state)
+        
+        dptr.close()
+        print(data)
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-        trace = []
-        state = np.array(state)
-        gj_src = np.array(gj_src)
-        gj_tgt = np.array(gj_tgt)
-        g_gj = np.array(g_gj)
-
-        program = tsp.create_tsp_runner(self.iop_path)
-        
-        for _ in range(nms):
-            for _ in range(40*nms):
-                state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)["state_next"]
-            if probe:
-                trace.append(state[0, :])
-        if probe:
-            return tf.constant(state), np.array(trace)
-        else:
-            return tf.constant(state)
+        print("[ERROR] not an option as DMA buffers are not off the same size")
+        raise NotImplementedError()
