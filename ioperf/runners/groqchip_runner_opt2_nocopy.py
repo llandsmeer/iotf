@@ -18,9 +18,9 @@ except ImportError:
 from .. import model
 from .base_runner import BaseRunner
 
-__all__ = ['GroqchipRunner_opt2_nocopy']
+__all__ = ['GroqchipRunnerOpt2NoCopy']
 
-class GroqchipRunner(BaseRunner):
+class GroqchipRunnerOpt2NoCopy(BaseRunner):
     '''
     GroqChip implementation
     using on chip persistent data.

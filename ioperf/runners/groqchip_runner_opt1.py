@@ -18,9 +18,9 @@ except ImportError:
 from .. import model
 from .base_runner import BaseRunner
 
-__all__ = ['GroqchipRunner_opt1']
+__all__ = ['GroqchipRunnerOpt1']
 
-class GroqchipRunner(BaseRunner):
+class GroqchipRunnerOpt1(BaseRunner):
     '''
     GroqChip implementation
     Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size
