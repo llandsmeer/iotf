@@ -32,13 +32,30 @@ class BaseRunner:
     &#39;&#39;&#39;
     Common interface description
     &#39;&#39;&#39;
-    def setup(self, *args, **kwargs):
+
+    def setup(self, *, ngj, ncells, argconfig):
+        &#39;&#39;&#39;
+        Set up functions, context etc to run a simulation.
+        This is used instead of a constructor, so we can
+        just reuse the same Runner class.
+
+        *args and **kwargs are assumed to be in a format
+        such that it can be passed unchanged to make_tf_function()
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run without gap junctions (only works if setup was called
+        with gap junctions disabled)
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_with_gap_junctions(self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run with gap junctions (only works if setup was called
+        with gap junction enabled config)
+        &#39;&#39;&#39;
         raise NotImplementedError()</code></pre>
 </details>
 </section>
@@ -64,13 +81,30 @@ class BaseRunner:
     &#39;&#39;&#39;
     Common interface description
     &#39;&#39;&#39;
-    def setup(self, *args, **kwargs):
+
+    def setup(self, *, ngj, ncells, argconfig):
+        &#39;&#39;&#39;
+        Set up functions, context etc to run a simulation.
+        This is used instead of a constructor, so we can
+        just reuse the same Runner class.
+
+        *args and **kwargs are assumed to be in a format
+        such that it can be passed unchanged to make_tf_function()
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run without gap junctions (only works if setup was called
+        with gap junctions disabled)
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_with_gap_junctions(self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run with gap junctions (only works if setup was called
+        with gap junction enabled config)
+        &#39;&#39;&#39;
         raise NotImplementedError()</code></pre>
 </details>
 <h3>Subclasses</h3>
@@ -84,12 +118,17 @@ class BaseRunner:
 <span>def <span class="ident">run_unconnected</span></span>(<span>self, nsteps, state, probe=False, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Run without gap junctions (only works if setup was called
+with gap junctions disabled)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def run_unconnected(self, nsteps, state, probe=False, **kwargs):
+    &#39;&#39;&#39;
+    Run without gap junctions (only works if setup was called
+    with gap junctions disabled)
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
@@ -97,25 +136,42 @@ class BaseRunner:
 <span>def <span class="ident">run_with_gap_junctions</span></span>(<span>self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Run with gap junctions (only works if setup was called
+with gap junction enabled config)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def run_with_gap_junctions(self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+    &#39;&#39;&#39;
+    Run with gap junctions (only works if setup was called
+    with gap junction enabled config)
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
 <dt id="ioperf.runners.base_runner.BaseRunner.setup"><code class="name flex">
-<span>def <span class="ident">setup</span></span>(<span>self, *args, **kwargs)</span>
+<span>def <span class="ident">setup</span></span>(<span>self, *, ngj, ncells, argconfig)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Set up functions, context etc to run a simulation.
+This is used instead of a constructor, so we can
+just reuse the same Runner class.</p>
+<p><em>args and </em>*kwargs are assumed to be in a format
+such that it can be passed unchanged to make_tf_function()</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def setup(self, *args, **kwargs):
+<pre><code class="python">def setup(self, *, ngj, ncells, argconfig):
+    &#39;&#39;&#39;
+    Set up functions, context etc to run a simulation.
+    This is used instead of a constructor, so we can
+    just reuse the same Runner class.
+
+    *args and **kwargs are assumed to be in a format
+    such that it can be passed unchanged to make_tf_function()
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>

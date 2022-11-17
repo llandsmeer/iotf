@@ -10,10 +10,15 @@ from .base_runner import BaseRunner
 __all__ = ['OnnxBaseRunner']
 
 class OnnxBaseRunner(BaseRunner):
+    '''
+    Base ONNX implementation.
+    Override `provider` or `make_ort_session()`
+    in child classes to specify options.
+    '''
     provider = '<placeholder>'
 
-    def setup(self, *args, **kwargs):
-        self.onnx_path = model.make_onnx_model(*args, **kwargs)
+    def setup(self, *, ngj, ncells, argconfig, opset=16):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig, opset=opset)
         self.ort_session = self.make_ort_session()
 
     def make_ort_session(self):

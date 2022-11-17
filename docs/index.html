@@ -30,19 +30,29 @@
 os.environ[&#39;TF_CPP_MIN_LOG_LEVEL&#39;] = &#39;3&#39; 
 
 from . import model
-from . import runners</code></pre>
+from . import runners
+from . import bench
+
+__all__ = [&#39;model&#39;, &#39;runners&#39;, &#39;bench&#39;]</code></pre>
 </details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
+<dt><code class="name"><a title="ioperf.bench" href="bench/index.html">ioperf.bench</a></code></dt>
+<dd>
+<div class="desc"><p>Benchmarking module</p></div>
+</dd>
 <dt><code class="name"><a title="ioperf.model" href="model/index.html">ioperf.model</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Inferior olive model from de Gruijl et al.
+implemented in tensorflow and helper functions
+for optimization and network generation.</p></div>
 </dd>
 <dt><code class="name"><a title="ioperf.runners" href="runners/index.html">ioperf.runners</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Runners module. Contains both abstract and concrete
+implementations</p></div>
 </dd>
 </dl>
 </section>
@@ -61,6 +71,7 @@ from . import runners</code></pre>
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
+<li><code><a title="ioperf.bench" href="bench/index.html">ioperf.bench</a></code></li>
 <li><code><a title="ioperf.model" href="model/index.html">ioperf.model</a></code></li>
 <li><code><a title="ioperf.runners" href="runners/index.html">ioperf.runners</a></code></li>
 </ul>

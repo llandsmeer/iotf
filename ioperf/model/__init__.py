@@ -1,3 +1,9 @@
+'''
+Inferior olive model from de Gruijl et al.
+implemented in tensorflow and helper functions
+for optimization and network generation.
+'''
+
 from .make_tf_function import make_tf_function
 from .make_initial_neuron_state import make_initial_neuron_state
 from .sample_connections_3d import sample_connections_3d

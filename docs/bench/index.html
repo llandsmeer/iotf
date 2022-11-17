@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>ioperf.runners.graphcore_runner API documentation</title>
-<meta name="description" content="" />
+<title>ioperf.bench API documentation</title>
+<meta name="description" content="Benchmarking module" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,65 +19,17 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>ioperf.runners.graphcore_runner</code></h1>
+<h1 class="title">Module <code>ioperf.bench</code></h1>
 </header>
 <section id="section-intro">
+<p>Benchmarking module</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import numpy as np
-import tensorflow as tf
-import time
-
-from .. import model
-from .base_runner import BaseRunner
-
-__all__ = [&#39;GraphcoreRunner&#39;]
-
-class GraphcoreRunner(BaseRunner):
-    def setup(self, *, ngj, ncells, argconfig):
-        from tensorflow.python import ipu
-        config = ipu.config.IPUConfig()
-        config.auto_select_ipus = 2
-        config.configure_ipu_system()
-        config.optimizations.math.fast = True
-        self.tf_function = model.make_tf_function(*args, **kwargs)
-
-    def run_unconnected(self, nms, state, probe=False, **kwargs):
-        from tensorflow.python import ipu
-        strategy = ipu.ipu_strategy.IPUStrategy()
-        with strategy.scope():
-            trace = []
-            timestep = self.tf_function
-            def loop_body(state):
-                return timestep(state=state, **kwargs)
-            for _ in range(nms):
-                state = ipu.loops.repeat(40, loop_body, state)
-                if probe:
-                    trace.append(state[:,0].numpy())
-        if probe:
-            return state, np.array(trace)
-        else:
-            return state
-
-
-    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-        from tensorflow.python import ipu
-        strategy = ipu.ipu_strategy.IPUStrategy()
-        with strategy.scope():
-            trace = []
-            timestep = self.tf_function
-            def loop_body(state):
-                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)
-            for _ in range(nms):
-                state = ipu.loops.repeat(40, loop_body, state)
-                if probe:
-                    trace.append(state[:,0].numpy())
-        if probe:
-            return state, np.array(trace)
-        else:
-            return state</code></pre>
+<pre><code class="python">&#39;&#39;&#39;
+Benchmarking module
+&#39;&#39;&#39;</code></pre>
 </details>
 </section>
 <section>
@@ -87,77 +39,6 @@ class GraphcoreRunner(BaseRunner):
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-classes">Classes</h2>
-<dl>
-<dt id="ioperf.runners.graphcore_runner.GraphcoreRunner"><code class="flex name class">
-<span>class <span class="ident">GraphcoreRunner</span></span>
-</code></dt>
-<dd>
-<div class="desc"><p>Common interface description</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class GraphcoreRunner(BaseRunner):
-    def setup(self, *, ngj, ncells, argconfig):
-        from tensorflow.python import ipu
-        config = ipu.config.IPUConfig()
-        config.auto_select_ipus = 2
-        config.configure_ipu_system()
-        config.optimizations.math.fast = True
-        self.tf_function = model.make_tf_function(*args, **kwargs)
-
-    def run_unconnected(self, nms, state, probe=False, **kwargs):
-        from tensorflow.python import ipu
-        strategy = ipu.ipu_strategy.IPUStrategy()
-        with strategy.scope():
-            trace = []
-            timestep = self.tf_function
-            def loop_body(state):
-                return timestep(state=state, **kwargs)
-            for _ in range(nms):
-                state = ipu.loops.repeat(40, loop_body, state)
-                if probe:
-                    trace.append(state[:,0].numpy())
-        if probe:
-            return state, np.array(trace)
-        else:
-            return state
-
-
-    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-        from tensorflow.python import ipu
-        strategy = ipu.ipu_strategy.IPUStrategy()
-        with strategy.scope():
-            trace = []
-            timestep = self.tf_function
-            def loop_body(state):
-                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)
-            for _ in range(nms):
-                state = ipu.loops.repeat(40, loop_body, state)
-                if probe:
-                    trace.append(state[:,0].numpy())
-        if probe:
-            return state, np.array(trace)
-        else:
-            return state</code></pre>
-</details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
-</ul>
-<h3>Inherited members</h3>
-<ul class="hlist">
-<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
-<ul class="hlist">
-<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
-<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
-<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
-</ul>
-</li>
-</ul>
-</dd>
-</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -168,14 +49,7 @@ class GraphcoreRunner(BaseRunner):
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="ioperf.runners" href="index.html">ioperf.runners</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="ioperf.runners.graphcore_runner.GraphcoreRunner" href="#ioperf.runners.graphcore_runner.GraphcoreRunner">GraphcoreRunner</a></code></h4>
-</li>
+<li><code><a title="ioperf" href="../index.html">ioperf</a></code></li>
 </ul>
 </li>
 </ul>

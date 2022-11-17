@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>ioperf.runners API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="Runners module. Contains both abstract and concrete
+implementations" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,11 +23,19 @@
 <h1 class="title">Module <code>ioperf.runners</code></h1>
 </header>
 <section id="section-intro">
+<p>Runners module. Contains both abstract and concrete
+implementations</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from .base_runner import BaseRunner
+<pre><code class="python">&#39;&#39;&#39;
+Runners module. Contains both abstract and concrete
+implementations
+
+&#39;&#39;&#39;
+
+from .base_runner import BaseRunner
 from .graphcore_runner import GraphcoreRunner
 from .onnx_base_runner import OnnxBaseRunner
 from .onnx_cpu_runner import OnnxCpuRunner
@@ -110,13 +119,30 @@ Available runners with implementation
     &#39;&#39;&#39;
     Common interface description
     &#39;&#39;&#39;
-    def setup(self, *args, **kwargs):
+
+    def setup(self, *, ngj, ncells, argconfig):
+        &#39;&#39;&#39;
+        Set up functions, context etc to run a simulation.
+        This is used instead of a constructor, so we can
+        just reuse the same Runner class.
+
+        *args and **kwargs are assumed to be in a format
+        such that it can be passed unchanged to make_tf_function()
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run without gap junctions (only works if setup was called
+        with gap junctions disabled)
+        &#39;&#39;&#39;
         raise NotImplementedError()
 
     def run_with_gap_junctions(self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        &#39;&#39;&#39;
+        Run with gap junctions (only works if setup was called
+        with gap junction enabled config)
+        &#39;&#39;&#39;
         raise NotImplementedError()</code></pre>
 </details>
 <h3>Subclasses</h3>
@@ -130,12 +156,17 @@ Available runners with implementation
 <span>def <span class="ident">run_unconnected</span></span>(<span>self, nsteps, state, probe=False, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Run without gap junctions (only works if setup was called
+with gap junctions disabled)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def run_unconnected(self, nsteps, state, probe=False, **kwargs):
+    &#39;&#39;&#39;
+    Run without gap junctions (only works if setup was called
+    with gap junctions disabled)
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
@@ -143,25 +174,42 @@ Available runners with implementation
 <span>def <span class="ident">run_with_gap_junctions</span></span>(<span>self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Run with gap junctions (only works if setup was called
+with gap junction enabled config)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def run_with_gap_junctions(self, nsteps, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+    &#39;&#39;&#39;
+    Run with gap junctions (only works if setup was called
+    with gap junction enabled config)
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
 <dt id="ioperf.runners.BaseRunner.setup"><code class="name flex">
-<span>def <span class="ident">setup</span></span>(<span>self, *args, **kwargs)</span>
+<span>def <span class="ident">setup</span></span>(<span>self, *, ngj, ncells, argconfig)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Set up functions, context etc to run a simulation.
+This is used instead of a constructor, so we can
+just reuse the same Runner class.</p>
+<p><em>args and </em>*kwargs are assumed to be in a format
+such that it can be passed unchanged to make_tf_function()</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def setup(self, *args, **kwargs):
+<pre><code class="python">def setup(self, *, ngj, ncells, argconfig):
+    &#39;&#39;&#39;
+    Set up functions, context etc to run a simulation.
+    This is used instead of a constructor, so we can
+    just reuse the same Runner class.
+
+    *args and **kwargs are assumed to be in a format
+    such that it can be passed unchanged to make_tf_function()
+    &#39;&#39;&#39;
     raise NotImplementedError()</code></pre>
 </details>
 </dd>
@@ -177,7 +225,7 @@ Available runners with implementation
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class GraphcoreRunner(BaseRunner):
-    def setup(self, *args, **kwargs):
+    def setup(self, *, ngj, ncells, argconfig):
         from tensorflow.python import ipu
         config = ipu.config.IPUConfig()
         config.auto_select_ipus = 2
@@ -224,96 +272,38 @@ Available runners with implementation
 <ul class="hlist">
 <li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
 </ul>
-<h3>Methods</h3>
-<dl>
-<dt id="ioperf.runners.GraphcoreRunner.run_unconnected"><code class="name flex">
-<span>def <span class="ident">run_unconnected</span></span>(<span>self, nms, state, probe=False, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run_unconnected(self, nms, state, probe=False, **kwargs):
-    from tensorflow.python import ipu
-    strategy = ipu.ipu_strategy.IPUStrategy()
-    with strategy.scope():
-        trace = []
-        timestep = self.tf_function
-        def loop_body(state):
-            return timestep(state=state, **kwargs)
-        for _ in range(nms):
-            state = ipu.loops.repeat(40, loop_body, state)
-            if probe:
-                trace.append(state[:,0].numpy())
-    if probe:
-        return state, np.array(trace)
-    else:
-        return state</code></pre>
-</details>
-</dd>
-<dt id="ioperf.runners.GraphcoreRunner.run_with_gap_junctions"><code class="name flex">
-<span>def <span class="ident">run_with_gap_junctions</span></span>(<span>self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-    from tensorflow.python import ipu
-    strategy = ipu.ipu_strategy.IPUStrategy()
-    with strategy.scope():
-        trace = []
-        timestep = self.tf_function
-        def loop_body(state):
-            return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)
-        for _ in range(nms):
-            state = ipu.loops.repeat(40, loop_body, state)
-            if probe:
-                trace.append(state[:,0].numpy())
-    if probe:
-        return state, np.array(trace)
-    else:
-        return state</code></pre>
-</details>
-</dd>
-<dt id="ioperf.runners.GraphcoreRunner.setup"><code class="name flex">
-<span>def <span class="ident">setup</span></span>(<span>self, *args, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def setup(self, *args, **kwargs):
-    from tensorflow.python import ipu
-    config = ipu.config.IPUConfig()
-    config.auto_select_ipus = 2
-    config.configure_ipu_system()
-    config.optimizations.math.fast = True
-    self.tf_function = model.make_tf_function(*args, **kwargs)</code></pre>
-</details>
-</dd>
-</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="ioperf.runners.OnnxBaseRunner"><code class="flex name class">
 <span>class <span class="ident">OnnxBaseRunner</span></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common interface description</p></div>
+<div class="desc"><p>Base ONNX implementation.
+Override <code>provider</code> or <code>make_ort_session()</code>
+in child classes to specify options.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OnnxBaseRunner(BaseRunner):
+    &#39;&#39;&#39;
+    Base ONNX implementation.
+    Override `provider` or `make_ort_session()`
+    in child classes to specify options.
+    &#39;&#39;&#39;
     provider = &#39;&lt;placeholder&gt;&#39;
 
-    def setup(self, *args, **kwargs):
-        self.onnx_path = model.make_onnx_model(*args, **kwargs)
+    def setup(self, *, ngj, ncells, argconfig, opset=16):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig, opset=opset)
         self.ort_session = self.make_ort_session()
 
     def make_ort_session(self):
@@ -416,69 +406,29 @@ Available runners with implementation
     return ort.InferenceSession(self.onnx_path, sess_options, providers=self.provider)</code></pre>
 </details>
 </dd>
-<dt id="ioperf.runners.OnnxBaseRunner.run_unconnected"><code class="name flex">
-<span>def <span class="ident">run_unconnected</span></span>(<span>self, nms, state, probe=False, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run_unconnected(self, nms, state, probe=False, **kwargs):
-    args = { &#39;state&#39;: ort.OrtValue.ortvalue_from_numpy(state.numpy()) }
-    for k, v in kwargs:
-        args[k] = ort.OrtValue.ortvalue_from_numpy(v)
-    args.update(kwargs)
-    return self._run(nms, args, probe)</code></pre>
-</details>
-</dd>
-<dt id="ioperf.runners.OnnxBaseRunner.run_with_gap_junctions"><code class="name flex">
-<span>def <span class="ident">run_with_gap_junctions</span></span>(<span>self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
-    args = {
-        &#39;state&#39;: ort.OrtValue.ortvalue_from_numpy(state.numpy()),
-        &#39;gj_src&#39;: ort.OrtValue.ortvalue_from_numpy(gj_src.numpy()),
-        &#39;gj_tgt&#39;: ort.OrtValue.ortvalue_from_numpy(gj_tgt.numpy()),
-        &#39;g_gj&#39;: ort.OrtValue.ortvalue_from_numpy(np.array(g_gj, dtype=&#39;float32&#39;))
-    }
-    args.update(kwargs)
-    return self._run(nms, args, probe)</code></pre>
-</details>
-</dd>
-<dt id="ioperf.runners.OnnxBaseRunner.setup"><code class="name flex">
-<span>def <span class="ident">setup</span></span>(<span>self, *args, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def setup(self, *args, **kwargs):
-    self.onnx_path = model.make_onnx_model(*args, **kwargs)
-    self.ort_session = self.make_ort_session()</code></pre>
-</details>
-</dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="ioperf.runners.OnnxCUDARunner"><code class="flex name class">
 <span>class <span class="ident">OnnxCUDARunner</span></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common interface description</p></div>
+<div class="desc"><p>CUDAExecutionProvider</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OnnxCUDARunner(OnnxBaseRunner):
+    &#39;&#39;&#39;CUDAExecutionProvider&#39;&#39;&#39;
     provider = &#39;CUDAExecutionProvider&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -493,17 +443,28 @@ Available runners with implementation
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="ioperf.runners.OnnxCpuRunner"><code class="flex name class">
 <span>class <span class="ident">OnnxCpuRunner</span></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common interface description</p></div>
+<div class="desc"><p>CPUExecutionProvider</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OnnxCpuRunner(OnnxBaseRunner):
+    &#39;&#39;&#39;CPUExecutionProvider&#39;&#39;&#39;
     provider = &#39;CPUExecutionProvider&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -518,17 +479,28 @@ Available runners with implementation
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="ioperf.runners.OnnxTensorRTRunner"><code class="flex name class">
 <span>class <span class="ident">OnnxTensorRTRunner</span></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common interface description</p></div>
+<div class="desc"><p>TensorrtExecutionProvider</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OnnxTensorRTRunner(OnnxBaseRunner):
+    &#39;&#39;&#39;TensorrtExecutionProvider&#39;&#39;&#39;
     provider = &#39;TensorrtExecutionProvider&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -543,6 +515,16 @@ Available runners with implementation
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 </dl>
 </section>
@@ -585,20 +567,12 @@ Available runners with implementation
 </li>
 <li>
 <h4><code><a title="ioperf.runners.GraphcoreRunner" href="#ioperf.runners.GraphcoreRunner">GraphcoreRunner</a></code></h4>
-<ul class="">
-<li><code><a title="ioperf.runners.GraphcoreRunner.run_unconnected" href="#ioperf.runners.GraphcoreRunner.run_unconnected">run_unconnected</a></code></li>
-<li><code><a title="ioperf.runners.GraphcoreRunner.run_with_gap_junctions" href="#ioperf.runners.GraphcoreRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
-<li><code><a title="ioperf.runners.GraphcoreRunner.setup" href="#ioperf.runners.GraphcoreRunner.setup">setup</a></code></li>
-</ul>
 </li>
 <li>
 <h4><code><a title="ioperf.runners.OnnxBaseRunner" href="#ioperf.runners.OnnxBaseRunner">OnnxBaseRunner</a></code></h4>
 <ul class="">
 <li><code><a title="ioperf.runners.OnnxBaseRunner.make_ort_session" href="#ioperf.runners.OnnxBaseRunner.make_ort_session">make_ort_session</a></code></li>
 <li><code><a title="ioperf.runners.OnnxBaseRunner.provider" href="#ioperf.runners.OnnxBaseRunner.provider">provider</a></code></li>
-<li><code><a title="ioperf.runners.OnnxBaseRunner.run_unconnected" href="#ioperf.runners.OnnxBaseRunner.run_unconnected">run_unconnected</a></code></li>
-<li><code><a title="ioperf.runners.OnnxBaseRunner.run_with_gap_junctions" href="#ioperf.runners.OnnxBaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
-<li><code><a title="ioperf.runners.OnnxBaseRunner.setup" href="#ioperf.runners.OnnxBaseRunner.setup">setup</a></code></li>
 </ul>
 </li>
 <li>

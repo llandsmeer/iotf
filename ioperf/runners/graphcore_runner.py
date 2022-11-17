@@ -8,7 +8,7 @@ from .base_runner import BaseRunner
 __all__ = ['GraphcoreRunner']
 
 class GraphcoreRunner(BaseRunner):
-    def setup(self, *args, **kwargs):
+    def setup(self, *, ngj, ncells, argconfig):
         from tensorflow.python import ipu
         config = ipu.config.IPUConfig()
         config.auto_select_ipus = 2

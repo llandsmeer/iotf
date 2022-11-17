@@ -1,3 +1,9 @@
+'''
+Runners module. Contains both abstract and concrete
+implementations
+
+'''
+
 from .base_runner import BaseRunner
 from .graphcore_runner import GraphcoreRunner
 from .onnx_base_runner import OnnxBaseRunner

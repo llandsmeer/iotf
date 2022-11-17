@@ -31,6 +31,7 @@
 __all__ = [&#39;OnnxTensorRTRunner&#39;]
 
 class OnnxTensorRTRunner(OnnxBaseRunner):
+    &#39;&#39;&#39;TensorrtExecutionProvider&#39;&#39;&#39;
     provider = &#39;TensorrtExecutionProvider&#39;</code></pre>
 </details>
 </section>
@@ -47,12 +48,13 @@ class OnnxTensorRTRunner(OnnxBaseRunner):
 <span>class <span class="ident">OnnxTensorRTRunner</span></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common interface description</p></div>
+<div class="desc"><p>TensorrtExecutionProvider</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OnnxTensorRTRunner(OnnxBaseRunner):
+    &#39;&#39;&#39;TensorrtExecutionProvider&#39;&#39;&#39;
     provider = &#39;TensorrtExecutionProvider&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -67,6 +69,16 @@ class OnnxTensorRTRunner(OnnxBaseRunner):
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner" href="onnx_base_runner.html#ioperf.runners.onnx_base_runner.OnnxBaseRunner">OnnxBaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.onnx_base_runner.OnnxBaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 </dl>
 </section>
