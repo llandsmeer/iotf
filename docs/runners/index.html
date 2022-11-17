@@ -30,10 +30,21 @@
 from . import onnx_runner
 from . import graphcore
 
+__all__ = [
+        &#39;onnx_runner&#39;,
+        &#39;runners&#39;,
+        &#39;graphcore&#39;,
+        &#39;onnx_experiment&#39;
+        ]
+
 runners = {
     &#39;onnx&#39;: onnx_runner.main,
     &#39;graphcore&#39;: graphcore.main
-}</code></pre>
+}
+&#39;&#39;&#39;
+Dictionary of runners. Keys correspond to
+--runner argument of __main__.py.
+&#39;&#39;&#39;</code></pre>
 </details>
 </section>
 <section>
@@ -54,6 +65,14 @@ runners = {
 </dl>
 </section>
 <section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="ioperf.runners.runners"><code class="name">var <span class="ident">runners</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary of runners. Keys correspond to
+&ndash;runner argument of <strong>main</strong>.py.</p></div>
+</dd>
+</dl>
 </section>
 <section>
 </section>
@@ -76,6 +95,11 @@ runners = {
 <li><code><a title="ioperf.runners.graphcore" href="graphcore.html">ioperf.runners.graphcore</a></code></li>
 <li><code><a title="ioperf.runners.onnx_experiment" href="onnx_experiment.html">ioperf.runners.onnx_experiment</a></code></li>
 <li><code><a title="ioperf.runners.onnx_runner" href="onnx_runner.html">ioperf.runners.onnx_runner</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="ioperf.runners.runners" href="#ioperf.runners.runners">runners</a></code></li>
 </ul>
 </li>
 </ul>
