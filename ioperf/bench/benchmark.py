@@ -92,7 +92,7 @@ class Benchmark:
                             b = time.perf_counter()
                             self.register('run_unconnected_perf', a, b, config, runner, i)
                         a = time.perf_counter()
-                        _, trace = runner.run_unconnected(self.n_ms, config.state, probe=True)
+                        _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
                         b = time.perf_counter()
                         self.register('run_unconnected_probe', a, b, config, runner, trace)
                 except:
@@ -109,7 +109,7 @@ class Benchmark:
                             b = time.perf_counter()
                             self.register('run_connected_perf', a, b, config, runner, i)
                         a = time.perf_counter()
-                        _, trace = runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
+                        _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
                         b = time.perf_counter()
                         self.register('run_connected_probe', a, b, config, runner, trace)
                 except:
