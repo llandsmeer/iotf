@@ -1,7 +1,6 @@
 '''
 Runners module. Contains both abstract and concrete
-implementations
-
+implementations. Runners are expected to implement the BaseRunner class.
 '''
 
 from .base_runner import BaseRunner
