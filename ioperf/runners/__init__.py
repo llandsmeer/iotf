@@ -1,19 +1,27 @@
-from . import onnx_experiment
-from . import onnx_runner
-from . import graphcore
+from .base_runner import BaseRunner
+from .graphcore_runner import GraphcoreRunner
+from .onnx_base_runner import OnnxBaseRunner
+from .onnx_cpu_runner import OnnxCpuRunner
+from .onnx_cuda_runner import OnnxCUDARunner
+from .onnx_tensorrt_runner import OnnxTensorRTRunner
 
 __all__ = [
-        'onnx_runner',
-        'runners',
-        'graphcore',
-        'onnx_experiment'
-        ]
+    'BaseRunner',
+    'GraphcoreRunner',
+    'OnnxBaseRunner',
+    'OnnxCpuRunner',
+    'OnnxCUDARunner',
+    'OnnxTensorRTRunner',
+    'runners'
+]
 
-runners = {
-    'onnx': onnx_runner.main,
-    'graphcore': graphcore.main
-}
+runners = [
+    GraphcoreRunner,
+    OnnxCpuRunner,
+    OnnxCUDARunner,
+    OnnxTensorRTRunner
+]
 '''
-Dictionary of runners. Keys correspond to
---runner argument of __main__.py.
+Available runners with implementation
 '''
+

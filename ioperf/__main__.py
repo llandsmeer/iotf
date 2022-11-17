@@ -11,6 +11,7 @@ parser.add_argument('--runner',
                     help='Which runner to use')
 def main():
     args = parser.parse_args()
+    raise NotImplementedError('good luck')
     runners[args.runner]()
 
 if __name__ == '__main__':
