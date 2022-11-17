@@ -5,6 +5,13 @@ class BaseRunner:
     Common interface description
     '''
 
+    def tagline(self):
+        '''
+        This function should output a single line of data about hardware
+        configuration specific to the runner
+        '''
+        return '<no-tagline>'
+
     def is_supported(self):
         '''
         Return True on supported systems, false on non-supported systems

@@ -17,6 +17,9 @@ class OnnxBaseRunner(BaseRunner):
     '''
     provider = '<placeholder>'
 
+    def is_supported(self):
+        return self.provider in ort.get_available_providers()
+
     def setup(self, *, ngj, ncells, argconfig, opset=16):
         self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig, opset=opset)
         self.ort_session = self.make_ort_session()
