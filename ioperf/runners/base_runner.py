@@ -5,6 +5,12 @@ class BaseRunner:
     Common interface description
     '''
 
+    def is_supported(self):
+        '''
+        Return True on supported systems, false on non-supported systems
+        '''
+        raise NotImplementedError()
+
     def setup(self, *, ngj, ncells, argconfig):
         '''
         Set up functions, context etc to run a simulation.

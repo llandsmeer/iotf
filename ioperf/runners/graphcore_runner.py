@@ -8,6 +8,13 @@ from .base_runner import BaseRunner
 __all__ = ['GraphcoreRunner']
 
 class GraphcoreRunner(BaseRunner):
+    def is_supported(self):
+        try:
+            from tensorflow.python import ipu
+        except ImportError:
+            return False
+        return True
+
     def setup(self, *, ngj, ncells, argconfig):
         from tensorflow.python import ipu
         config = ipu.config.IPUConfig()
