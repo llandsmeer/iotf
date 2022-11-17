@@ -10,7 +10,7 @@ def make_onnx_model(*args, opset=16, **kwargs):
     Optionally, one can specify an extra `opset` argument for ONNX
     '''
     tf_function = model.make_tf_function(*args, **kwargs)
-    path = tempfile.mktemp()
+    path = tempfile.mktemp() + '.onnx'
 
     onnx_model, _ = tf2onnx.convert.from_function(
             function=tf_function, 
