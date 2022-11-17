@@ -6,6 +6,16 @@ def sample_connections_3d(
         nconnections=10,
         rmax=2,
         connection_probability=lambda r: np.exp(-(r/4)**2)):
+    '''
+    (Gaussian) connection sampling in a cube. `nneurons` must thus
+    be a power of 3 integer. `nconnections` is  amount of connections
+    per neuron. Values in the range of 10 are biologically plausible.
+    `rmax` determines the maximum radial distance considered.
+    The `connection_probability` is a function that determines the
+    PDF, it will be normalized according to `rmax` and uneven radial point
+    distribution in a 3d lattice.
+    '''
+    assert int(round(nneurons**(1/3)))**3 == nneurons
     # we sample half the connections for each neuron
     assert nconnections % 2 == 0
     # we assume a cubic (4d toroid) brain
