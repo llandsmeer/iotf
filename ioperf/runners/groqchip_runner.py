@@ -86,13 +86,11 @@ class GroqchipRunner(BaseRunner):
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
         trace = []
-        state = np.array(state)
-        gj_src = np.array(gj_src)
-        gj_tgt = np.array(gj_tgt)
-        g_gj = np.array(g_gj)
-
+        state = state.numpy()
+        gj_src = gj_src.numpy()
+        gj_tgt = gj_tgt.numpy()
+        g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
         program = tsp.create_tsp_runner(self.iop_path)
-        
         for _ in range(nms):
             for _ in range(40*nms):
                 state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)["state_next"]
