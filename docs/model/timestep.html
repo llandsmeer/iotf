@@ -71,6 +71,11 @@ def timestep(
         gj_tgt          = None,
         g_gj            = 0.05
         ):
+    &#39;&#39;&#39;
+    Raw python implementation of the IO model using tensorflow math functions.
+    Don&#39;t call this function directly, instead use make_tf_function() to
+    optimize out unused parameters and compile to a tf.function for later use.
+    &#39;&#39;&#39;
 
     assert state.shape[0] == NUM_STATE_VARS
 
@@ -255,7 +260,9 @@ def timestep(
 <span>def <span class="ident">timestep</span></span>(<span>state, delta=0.025, g_int=0.13, p1=0.25, p2=0.15, g_CaL=1.1, g_h=0.12, g_K_Ca=35.0, g_ld=0.01532, g_la=0.016, g_ls=0.016, g_Na_s=150.0, g_Kdr_s=9.0, g_K_s=5.0, g_CaH=4.5, g_Na_a=240.0, g_K_a=240.0, S=1.0, V_Na=55.0, V_K=-75.0, V_Ca=120.0, V_h=-43.0, V_l=10.0, I_app=0.0, gj_src=None, gj_tgt=None, g_gj=0.05)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Raw python implementation of the IO model using tensorflow math functions.
+Don't call this function directly, instead use make_tf_function() to
+optimize out unused parameters and compile to a tf.function for later use.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -301,6 +308,11 @@ def timestep(
         gj_tgt          = None,
         g_gj            = 0.05
         ):
+    &#39;&#39;&#39;
+    Raw python implementation of the IO model using tensorflow math functions.
+    Don&#39;t call this function directly, instead use make_tf_function() to
+    optimize out unused parameters and compile to a tf.function for later use.
+    &#39;&#39;&#39;
 
     assert state.shape[0] == NUM_STATE_VARS
 

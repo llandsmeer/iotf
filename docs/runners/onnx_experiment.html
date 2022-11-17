@@ -36,13 +36,10 @@ import tf2onnx
 
 from .. import model
 
-ONNX_MODEL_PATH = tempfile.mktemp()
-
 def run_experiment(
         nneurons,
         par=False,
         gj=True,
-        do_experiment=True,
         n_measurement_repititions=10,
         g_gj=0.005,
         experiment_seconds = 5,
@@ -76,19 +73,12 @@ def run_experiment(
     argconfig = {}
     for var, _, _ in randomize_cell_params:
         argconfig[var] = &#39;VARY&#39;
-    tf_function = model.make_function(
+
+    onnx_path = model.build_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig
         )
-
-    # CONVERT TO ONNX
-    tf2onnx.convert.from_function(
-            function=tf_function, 
-            input_signature=tf_function.argspec,
-            output_path=ONNX_MODEL_PATH,
-            opset=16,
-            )
 
     # SET UP ONNX
     opts = ort.SessionOptions()
@@ -99,7 +89,7 @@ def run_experiment(
     else:
         opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-    ort_sess = ort.InferenceSession(ONNX_MODEL_PATH, sess_options=opts)
+    ort_sess = ort.InferenceSession(onnx_path, sess_options=opts)
 
     # SET UP ONNX ARGUMENTS
     state0 = ort.OrtValue.ortvalue_from_numpy(state0.numpy())
@@ -159,7 +149,7 @@ def run_experiment(
     }
 
 def main():
-    print( run_experiment(4**3) )</code></pre>
+    print(run_experiment(4**3))</code></pre>
 </details>
 </section>
 <section>
@@ -179,11 +169,11 @@ def main():
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def main():
-    print( run_experiment(4**3) )</code></pre>
+    print(run_experiment(4**3))</code></pre>
 </details>
 </dd>
 <dt id="ioperf.runners.onnx_experiment.run_experiment"><code class="name flex">
-<span>def <span class="ident">run_experiment</span></span>(<span>nneurons, par=False, gj=True, do_experiment=True, n_measurement_repititions=10, g_gj=0.005, experiment_seconds=5, randomize_cell_params=(('g_CaL', 1.1, -0.6), ('g_int', 0.13, -0.02), ('g_h', 0.12, 1), ('g_K_Ca', 35.1, 10), ('g_ld', 0.01532, -0.003), ('g_la', 0.016, -0.003), ('g_ls', 0.016, -0.003)), runner='ONNX_CPU')</span>
+<span>def <span class="ident">run_experiment</span></span>(<span>nneurons, par=False, gj=True, n_measurement_repititions=10, g_gj=0.005, experiment_seconds=5, randomize_cell_params=(('g_CaL', 1.1, -0.6), ('g_int', 0.13, -0.02), ('g_h', 0.12, 1), ('g_K_Ca', 35.1, 10), ('g_ld', 0.01532, -0.003), ('g_la', 0.016, -0.003), ('g_ls', 0.016, -0.003)), runner='ONNX_CPU')</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -195,7 +185,6 @@ def main():
         nneurons,
         par=False,
         gj=True,
-        do_experiment=True,
         n_measurement_repititions=10,
         g_gj=0.005,
         experiment_seconds = 5,
@@ -229,19 +218,12 @@ def main():
     argconfig = {}
     for var, _, _ in randomize_cell_params:
         argconfig[var] = &#39;VARY&#39;
-    tf_function = model.make_function(
+
+    onnx_path = model.build_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig
         )
-
-    # CONVERT TO ONNX
-    tf2onnx.convert.from_function(
-            function=tf_function, 
-            input_signature=tf_function.argspec,
-            output_path=ONNX_MODEL_PATH,
-            opset=16,
-            )
 
     # SET UP ONNX
     opts = ort.SessionOptions()
@@ -252,7 +234,7 @@ def main():
     else:
         opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-    ort_sess = ort.InferenceSession(ONNX_MODEL_PATH, sess_options=opts)
+    ort_sess = ort.InferenceSession(onnx_path, sess_options=opts)
 
     # SET UP ONNX ARGUMENTS
     state0 = ort.OrtValue.ortvalue_from_numpy(state0.numpy())

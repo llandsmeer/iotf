@@ -8,13 +8,10 @@ import tf2onnx
 
 from .. import model
 
-ONNX_MODEL_PATH = tempfile.mktemp()
-
 def run_experiment(
         nneurons,
         par=False,
         gj=True,
-        do_experiment=True,
         n_measurement_repititions=10,
         g_gj=0.005,
         experiment_seconds = 5,
@@ -48,19 +45,12 @@ def run_experiment(
     argconfig = {}
     for var, _, _ in randomize_cell_params:
         argconfig[var] = 'VARY'
-    tf_function = model.make_function(
+
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=argconfig
         )
-
-    # CONVERT TO ONNX
-    tf2onnx.convert.from_function(
-            function=tf_function, 
-            input_signature=tf_function.argspec,
-            output_path=ONNX_MODEL_PATH,
-            opset=16,
-            )
 
     # SET UP ONNX
     opts = ort.SessionOptions()
@@ -71,7 +61,7 @@ def run_experiment(
     else:
         opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-    ort_sess = ort.InferenceSession(ONNX_MODEL_PATH, sess_options=opts)
+    ort_sess = ort.InferenceSession(onnx_path, sess_options=opts)
 
     # SET UP ONNX ARGUMENTS
     state0 = ort.OrtValue.ortvalue_from_numpy(state0.numpy())
@@ -131,4 +121,4 @@ def run_experiment(
     }
 
 def main():
-    print( run_experiment(4**3) )
+    print(run_experiment(4**3))

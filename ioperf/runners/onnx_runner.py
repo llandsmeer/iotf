@@ -20,19 +20,12 @@ def get_slowdown(nneurons):
             nneurons, rmax=4)
     state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
 
-    tf_function = model.make_function(
+    onnx_path = model.make_onnx_model(
         ngj=len(gj_src),
         ncells=nneurons,
         argconfig=dict(
         #    g_CaL = 'VARY'
         ))
-
-    onnx_model, _ = tf2onnx.convert.from_function(
-            function=tf_function, 
-            input_signature=tf_function.argspec,
-            output_path='/tmp/io.onnx',
-            opset=16,
-            )
 
     sess_options = ort.SessionOptions()
     sess_options.use_deterministic_compute = True
@@ -53,7 +46,7 @@ def get_slowdown(nneurons):
     # opts.inter_op_num_threads = 0
     # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
 
-    ort_sess = ort.InferenceSession("/tmp/io.onnx", sess_options)
+    ort_sess = ort.InferenceSession(onnx_path, sess_options)
 
     a = time.time()
     niter = 0

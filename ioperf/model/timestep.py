@@ -43,6 +43,11 @@ def timestep(
         gj_tgt          = None,
         g_gj            = 0.05
         ):
+    '''
+    Raw python implementation of the IO model using tensorflow math functions.
+    Don't call this function directly, instead use make_tf_function() to
+    optimize out unused parameters and compile to a tf.function for later use.
+    '''
 
     assert state.shape[0] == NUM_STATE_VARS
 
