@@ -21,20 +21,22 @@ class GraphcoreRunner(BaseRunner):
         config.auto_select_ipus = 2
         config.configure_ipu_system()
         config.optimizations.math.fast = True
-        self.tf_function = model.make_tf_function(*args, **kwargs)
+        self.tf_function = model.make_tf_function(ngj=ngj, ncells=ncells, argconfig=argconfig)
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         from tensorflow.python import ipu
         strategy = ipu.ipu_strategy.IPUStrategy()
         with strategy.scope():
-            trace = []
+            trace = [state[0,:].numpy()]
             timestep = self.tf_function
             def loop_body(state):
-                return timestep(state=state, **kwargs)
+                return timestep(state=state, **kwargs)['state_next']
             for _ in range(nms):
+                print(state.shape)
                 state = ipu.loops.repeat(40, loop_body, state)
+                print(state.shape)
                 if probe:
-                    trace.append(state[:,0].numpy())
+                    trace.append(state[0,:].numpy())
         if probe:
             return state, np.array(trace)
         else:
@@ -46,13 +48,14 @@ class GraphcoreRunner(BaseRunner):
         strategy = ipu.ipu_strategy.IPUStrategy()
         with strategy.scope():
             trace = []
+            trace.append(state[0,:].numpy())
             timestep = self.tf_function
             def loop_body(state):
-                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)
+                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)['state_next']
             for _ in range(nms):
                 state = ipu.loops.repeat(40, loop_body, state)
                 if probe:
-                    trace.append(state[:,0].numpy())
+                    trace.append(state[0,:].numpy())
         if probe:
             return state, np.array(trace)
         else:
