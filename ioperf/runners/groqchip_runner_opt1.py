@@ -76,6 +76,10 @@ class GroqchipRunnerOpt1(BaseRunner):
         trace = []
         state = np.array(state)
 
+        if probe:
+            trace.append(state[0, :])
+
+
         shim = groq.runtime.DriverShim()
         dptr = shim.next_available_device()
         dptr.open()

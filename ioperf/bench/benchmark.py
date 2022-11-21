@@ -9,7 +9,7 @@ from .model_configuration import ModelConfiguration
 
 EXECUTABLES = (
         'hostname', 'uname -a', 'lspci',
-        'lsusb', 'lscpu', 'lsipc', 'nvidia-smi',
+        'lsusb', 'lscpu', 'lsipc', 'nvidia-smi', 'tsp-ctl status'
 )
 
 class bcolors:

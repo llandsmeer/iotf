@@ -156,6 +156,10 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
         state  = np.array(state)
+        staten = np.zeros_like(state)
+
+        if probe:
+            trace.append(state[0, :])
 
         #Groq Chip with presistent data
         shim = groq.runtime.DriverShim()
@@ -169,8 +173,10 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         # create all needed DMA buffers
         inputs_in   = runtime.BufferArray(prog[0].entry_points[0].input, 1)
         outputs_in = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+        
         inputs_comp = runtime.BufferArray(prog[1].entry_points[2].input, 1)
         outputs_comp = runtime.BufferArray(prog[1].entry_points[2].output, 1)
+
         inputs_out   = runtime.BufferArray(prog[2].entry_points[0].input, 1)
         outputs_out = runtime.BufferArray(prog[2].entry_points[0].output, 1)
      
@@ -183,9 +189,9 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
             for _ in range(40):
                 dptr.invoke(inputs_comp[0],outputs_comp[0])
             dptr.invoke(inputs_out[0],outputs_out[0])
-            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],state)
+            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
             if probe:
-                trace.append(state[0, :])
+                trace.append(staten[0, :])
 
         # Finished
         if probe:
@@ -196,9 +202,14 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
         trace = []
         state  = np.array(state)
+        staten = np.zeros_like(state)
         gj_src = np.array(gj_src)
         gj_tgt = np.array(gj_tgt)
         g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
+
+        if probe:
+            trace.append(state[0, :])
+
 
         #Groq Chip with presistent data
         shim = groq.runtime.DriverShim()
@@ -236,9 +247,9 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
             for _ in range(40):
                 dptr.invoke(inputs_comp[0],outputs_comp[0])
             dptr.invoke(inputs_out[0],outputs_out[0])
-            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],state)
+            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
             if probe:
-                trace.append(state[0, :])
+                trace.append(staten[0, :])
 
         # Finished
         if probe:

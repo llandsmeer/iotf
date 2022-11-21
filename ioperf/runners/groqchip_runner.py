@@ -74,7 +74,10 @@ class GroqchipRunner(BaseRunner):
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
-        state = np.array(state)
+        state = state.numpy()
+
+        if probe:
+            trace.append(state[0, :])
 
         program = tsp.create_tsp_runner(self.iop_path)
 
@@ -94,6 +97,10 @@ class GroqchipRunner(BaseRunner):
         gj_src = gj_src.numpy()
         gj_tgt = gj_tgt.numpy()
         g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
+        
+        if probe:
+            trace.append(state[0, :])
+        
         program = tsp.create_tsp_runner(self.iop_path)
         for _ in range(nms):
             for _ in range(40*nms):
