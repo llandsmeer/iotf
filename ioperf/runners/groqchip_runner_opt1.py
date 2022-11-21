@@ -92,7 +92,7 @@ class GroqchipRunnerOpt1(BaseRunner):
         inputs_iodesc.tensors[0].from_host(state, inputs[0])
    
         for _ in range(nms):
-            for _ in range(40/2*nms):
+            for _ in range(40/2):
                 dptr.invoke(inputs[0],outputs[0])
                 dptr.invoke(outputs[0],inputs[0])
             if probe:

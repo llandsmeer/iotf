@@ -82,10 +82,11 @@ class GroqchipRunner(BaseRunner):
         program = tsp.create_tsp_runner(self.iop_path)
 
         for _ in range(nms):
-            for _ in range(40*nms):
+            for _ in range(40):
                 state = program(state=state)["state_next"]
             if probe:
                 trace.append(state[0, :])
+        
         if probe:
             return tf.constant(state), np.array(trace)
         else:
@@ -103,10 +104,11 @@ class GroqchipRunner(BaseRunner):
         
         program = tsp.create_tsp_runner(self.iop_path)
         for _ in range(nms):
-            for _ in range(40*nms):
+            for _ in range(40):
                 state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)["state_next"]
             if probe:
                 trace.append(state[0, :])
+        
         if probe:
             return tf.constant(state), np.array(trace)
         else:

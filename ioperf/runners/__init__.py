@@ -28,7 +28,7 @@ __all__ = [
 
 runners = [
     GroqchipRunner,
-    GroqchipRunnerOpt2NoCopy,
+    # GroqchipRunnerOpt2NoCopy,
     GraphcoreRunner,
     OnnxCpuRunner,
     OnnxCUDARunner,
