@@ -1,9 +1,19 @@
 # Inferior olive benchmark
 
+## Requirements
+
+ - `numpy`
+ - `matplotlib`
+ - `tensorflow` - make sure you are using the right version if you want to run on CUDA
+ - `onnxruntime`
+ - `onnxruntime-gpu` (optional) - to run on CUDA and TensorRT
+ - Graphcore tensorflow SDK (optional) - to run on Graphcore
+ - `tf2onnx`
+
 ## Usage
 
 Running benchmarks (creating a benchmark.txt file).
-Which Runners to benchmark is chosen at runtime.
+Which Runners to benchmark is chosen at runtime based on available hardware.
 
 ```
 $ git clone https://github.com/llandsmeer/iotf
