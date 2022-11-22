@@ -32,9 +32,7 @@ class GraphcoreRunner(BaseRunner):
             def loop_body(state):
                 return timestep(state=state, **kwargs)['state_next']
             for _ in range(nms):
-                print(state.shape)
                 state = ipu.loops.repeat(40, loop_body, state)
-                print(state.shape)
                 if probe:
                     trace.append(state[0,:].numpy())
         if probe:
