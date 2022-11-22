@@ -37,6 +37,8 @@ implementations. Runners are expected to implement the BaseRunner class.
 from .base_runner import BaseRunner
 from .graphcore_runner import GraphcoreRunner
 from .groqchip_runner import GroqchipRunner
+from .groqchip_runner_opt1 import GroqchipRunnerOpt1
+from .groqchip_runner_opt2_nocopy import GroqchipRunnerOpt2NoCopy
 from .onnx_base_runner import OnnxBaseRunner
 from .onnx_cpu_runner import OnnxCpuRunner
 from .onnx_cuda_runner import OnnxCUDARunner
@@ -45,6 +47,8 @@ from .onnx_tensorrt_runner import OnnxTensorRTRunner
 __all__ = [
     &#39;BaseRunner&#39;,
     &#39;GroqchipRunner&#39;,
+    &#39;GroqchipRunnerOpt1&#39;,
+    &#39;GroqchipRunnerOpt2NoCopy&#39;,
     &#39;GraphcoreRunner&#39;,
     &#39;OnnxBaseRunner&#39;,
     &#39;OnnxCpuRunner&#39;,
@@ -55,6 +59,7 @@ __all__ = [
 
 runners = [
     GroqchipRunner,
+    # GroqchipRunnerOpt2NoCopy,
     GraphcoreRunner,
     OnnxCpuRunner,
     OnnxCUDARunner,
@@ -330,20 +335,22 @@ configuration specific to the runner</p></div>
         config.auto_select_ipus = 2
         config.configure_ipu_system()
         config.optimizations.math.fast = True
-        self.tf_function = model.make_tf_function(*args, **kwargs)
+        self.tf_function = model.make_tf_function(ngj=ngj, ncells=ncells, argconfig=argconfig)
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         from tensorflow.python import ipu
         strategy = ipu.ipu_strategy.IPUStrategy()
         with strategy.scope():
-            trace = []
+            trace = [state[0,:].numpy()]
             timestep = self.tf_function
             def loop_body(state):
-                return timestep(state=state, **kwargs)
+                return timestep(state=state, **kwargs)[&#39;state_next&#39;]
             for _ in range(nms):
+                print(state.shape)
                 state = ipu.loops.repeat(40, loop_body, state)
+                print(state.shape)
                 if probe:
-                    trace.append(state[:,0].numpy())
+                    trace.append(state[0,:].numpy())
         if probe:
             return state, np.array(trace)
         else:
@@ -355,13 +362,14 @@ configuration specific to the runner</p></div>
         strategy = ipu.ipu_strategy.IPUStrategy()
         with strategy.scope():
             trace = []
+            trace.append(state[0,:].numpy())
             timestep = self.tf_function
             def loop_body(state):
-                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)
+                return timestep(state=state, gj_src=gj_src, gj_tgt=gj_tgt, g_gj=g_gj, **kwargs)[&#39;state_next&#39;]
             for _ in range(nms):
                 state = ipu.loops.repeat(40, loop_body, state)
                 if probe:
-                    trace.append(state[:,0].numpy())
+                    trace.append(state[0,:].numpy())
         if probe:
             return state, np.array(trace)
         else:
@@ -448,15 +456,19 @@ This implementation is the most naive way of implementing for the GroqChip</p></
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
-        state = np.array(state)
+        state = state.numpy()
+
+        if probe:
+            trace.append(state[0, :])
 
         program = tsp.create_tsp_runner(self.iop_path)
 
         for _ in range(nms):
-            for _ in range(40*nms):
+            for _ in range(40):
                 state = program(state=state)[&#34;state_next&#34;]
             if probe:
                 trace.append(state[0, :])
+        
         if probe:
             return tf.constant(state), np.array(trace)
         else:
@@ -468,12 +480,17 @@ This implementation is the most naive way of implementing for the GroqChip</p></
         gj_src = gj_src.numpy()
         gj_tgt = gj_tgt.numpy()
         g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
+        
+        if probe:
+            trace.append(state[0, :])
+        
         program = tsp.create_tsp_runner(self.iop_path)
         for _ in range(nms):
-            for _ in range(40*nms):
+            for _ in range(40):
                 state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)[&#34;state_next&#34;]
             if probe:
                 trace.append(state[0, :])
+        
         if probe:
             return tf.constant(state), np.array(trace)
         else:
@@ -538,6 +555,588 @@ This implementation is the most naive way of implementing for the GroqChip</p></
 
     with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
         self.compiler_stats = json.load(f)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.is_supported" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.is_supported">is_supported</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.tagline" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.tagline">tagline</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="ioperf.runners.GroqchipRunnerOpt1"><code class="flex name class">
+<span>class <span class="ident">GroqchipRunnerOpt1</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>GroqChip implementation
+Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroqchipRunnerOpt1(BaseRunner):
+    &#39;&#39;&#39;
+    GroqChip implementation
+    Running a with better dma buffer control this only works for NO gap junctions, dma buffer swapping only works for same buffer size
+    &#39;&#39;&#39;
+
+    def is_supported(self):
+        return supported
+
+    def setup(self, ngj, ncells, argconfig):
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
+        self.iop_path = tempfile.mktemp() + &#34;.iop&#34;
+        self.aa_path = tempfile.mktemp()
+        self.compiler_stats = {}
+        self.compile()
+        self.assemble()
+
+    def assemble(self):
+        print(f&#34;[groqAssembler] Starting Groq compiler {self.iop_path}&#34;)
+        status = subprocess.call(
+            [
+                &#34;aa-latest&#34;,
+                &#34;--name&#34;,
+                f&#34;IOTimestep&#34;,
+                &#34;-i&#34;,
+                self.aa_path + &#34;.aa&#34;,
+                &#34;--output-iop&#34;,
+                self.iop_path,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Assembler call failed&#34;)
+
+    def compile(self):
+        print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+        status = subprocess.call(
+            [
+            &#34;groq-compiler&#34;,
+            f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+            &#34;-o&#34;,
+            self.aa_path,
+            self.onnx_path,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Compiler call failed&#34;)
+
+        with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+            self.compiler_stats = json.load(f)
+
+    def run_unconnected(self, nms, state, probe=False, **kwargs):
+        trace = []
+        state = np.array(state)
+
+        if probe:
+            trace.append(state[0, :])
+
+
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0]) 
+
+        inputs = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+
+        inputs_iodesc.tensors[0].from_host(state, inputs[0])
+   
+        for _ in range(nms):
+            for _ in range(40/2):
+                dptr.invoke(inputs[0],outputs[0])
+                dptr.invoke(outputs[0],inputs[0])
+            if probe:
+                outputs_iodesc.tensors[0].to_host(inputs[0],state)
+                trace.append(state[0, :])
+        if probe:
+            return tf.constant(state), np.array(trace)
+        else:
+            return tf.constant(state)
+        
+        dptr.close()
+        print(data)
+
+    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        print(&#34;[ERROR] not an option as DMA buffers are not off the same size&#34;)
+        raise NotImplementedError()</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.runners.GroqchipRunnerOpt1.assemble"><code class="name flex">
+<span>def <span class="ident">assemble</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def assemble(self):
+    print(f&#34;[groqAssembler] Starting Groq compiler {self.iop_path}&#34;)
+    status = subprocess.call(
+        [
+            &#34;aa-latest&#34;,
+            &#34;--name&#34;,
+            f&#34;IOTimestep&#34;,
+            &#34;-i&#34;,
+            self.aa_path + &#34;.aa&#34;,
+            &#34;--output-iop&#34;,
+            self.iop_path,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Assembler call failed&#34;)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.GroqchipRunnerOpt1.compile"><code class="name flex">
+<span>def <span class="ident">compile</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compile(self):
+    print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+    status = subprocess.call(
+        [
+        &#34;groq-compiler&#34;,
+        f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+        &#34;-o&#34;,
+        self.aa_path,
+        self.onnx_path,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Compiler call failed&#34;)
+
+    with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+        self.compiler_stats = json.load(f)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></b></code>:
+<ul class="hlist">
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.is_supported" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.is_supported">is_supported</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_unconnected" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_unconnected">run_unconnected</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.run_with_gap_junctions">run_with_gap_junctions</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.setup" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.setup">setup</a></code></li>
+<li><code><a title="ioperf.runners.base_runner.BaseRunner.tagline" href="base_runner.html#ioperf.runners.base_runner.BaseRunner.tagline">tagline</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="ioperf.runners.GroqchipRunnerOpt2NoCopy"><code class="flex name class">
+<span>class <span class="ident">GroqchipRunnerOpt2NoCopy</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>GroqChip implementation
+using on chip persistent data.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroqchipRunnerOpt2NoCopy(BaseRunner):
+    &#39;&#39;&#39;
+    GroqChip implementation
+    using on chip persistent data.
+    &#39;&#39;&#39;
+
+    def is_supported(self):
+        return supported
+
+    def setup(self, ngj, ncells, argconfig):
+        self.dtype = tf.float32
+        self.ncells = ncells
+        self.onnx_path = model.make_onnx_model(ngj=ngj, ncells=ncells, argconfig=argconfig)
+        self.onnxFileTo   = self.onnx_path[:-5] + &#34;_onnxTo.onnx&#34;
+        self.onnxFileFrom = self.onnx_path[:-5] + &#34;_onnxFrom.onnx&#34;
+        self.iop_path = tempfile.mktemp() + &#34;.iop&#34;
+        self.aa_path = tempfile.mktemp()
+        self.compiler_stats = {}
+        self.compile()
+        self.assemble()
+
+    def assemble(self):
+        status = subprocess.call(
+            [
+                &#34;aa-latest&#34;,
+                &#34;--name&#34;,
+                f&#34;DataMoverIn&#34;,
+                &#34;-i&#34;,
+                self.aa_path   + &#34;.0.aa&#34;,
+                &#34;--output-iop&#34;,
+                self.iop_path  + &#34;.0.iop&#34;,
+                &#34;--no-metrics&#34;,
+                &#34;--auto-agt&#34;,
+                &#34;--auto-repeat&#34;,
+                &#34;--ifetch-slice-ordering&#34;,
+                &#34;round-robin&#34;,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Assembler call failed&#34;)
+    
+        status = subprocess.call(
+            [
+                &#34;aa-latest&#34;,
+                &#34;--name&#34;,
+                f&#34;IOTimestep&#34;,
+                &#34;-i&#34;,
+                self.aa_path + &#34;.1.aa&#34;,
+                &#34;--output-iop&#34;,
+                self.iop_path  + &#34;.1.iop&#34;,
+                &#34;--no-metrics&#34;,
+                &#34;--program-package&#34;,
+                self.iop_path  + &#34;.0.iop&#34;,
+                &#34;--auto-agt&#34;,
+                &#34;--auto-repeat&#34;,
+                &#34;--ifetch-slice-ordering&#34;,
+                &#34;round-robin&#34;,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Assembler call failed&#34;)
+        
+        status = subprocess.call(
+            [
+                &#34;aa-latest&#34;,
+                &#34;--name&#34;,
+                f&#34;DataMoverOut&#34;,
+                &#34;-i&#34;,
+                self.aa_path + &#34;.2.aa&#34;,
+                &#34;--output-iop&#34;,
+                self.iop_path,
+                &#34;--no-metrics&#34;,
+                &#34;--auto-agt&#34;,
+                &#34;--auto-repeat&#34;,
+                &#34;--program-package&#34;,
+                self.iop_path  + &#34;.1.iop&#34;,
+                &#34;--ifetch-slice-ordering&#34;,
+                &#34;round-robin&#34;,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Assembler call failed&#34;)
+        
+        print(f&#34;[GroqAssembler] Finished {self.iop_path}&#34;)
+
+    def compile(self):
+        # [ONNX] DATA MOVER to TSP
+        onnx_model, _ = tf2onnx.convert.from_function(
+            function=self.mkid(&#39;result_mover_in&#39;), 
+            input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name=&#34;input_mover_in&#34;),),
+            output_path=self.onnxFileTo,
+            opset=16,
+        )
+        # [ONNX] DATA MOVER from TSP
+        onnx_model, _ = tf2onnx.convert.from_function(
+            function=self.mkid(&#39;result_mover_out&#39;), 
+            input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name=&#34;input_mover_out&#34;),),
+            output_path=self.onnxFileFrom,
+            opset=16,
+        )
+
+        print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+        status = subprocess.call(
+            [
+            &#34;groq-compiler&#34;,
+            f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+            &#34;--coresident&#34;,
+            &#34;--persistent=result_mover_in,input_mover_out,state_next,state&#34;,
+            &#34;-o&#34;,
+            self.aa_path,
+            self.onnxFileTo,
+            self.onnx_path,
+            self.onnxFileFrom,
+            ],
+            stdout=open(os.devnull, &#34;wb&#34;),
+        )
+        if status != 0:
+            raise Exception(&#34;Compiler call failed&#34;)
+
+        print(self.aa_path)
+        # with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+        #     self.compiler_stats = json.load(f)
+        
+
+    # Helper function
+    def mkid(self,name):
+        def tf_identity(x):
+            return {name: x}
+        return tf.function(tf_identity)
+
+    def run_unconnected(self, nms, state, probe=False, **kwargs):
+        trace = []
+        state  = np.array(state)
+        staten = np.zeros_like(state)
+
+        if probe:
+            trace.append(state[0, :])
+
+        #Groq Chip with presistent data
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0])
+        dptr.load(prog[1], unsafe_keep_entry_points=True)
+        dptr.load(prog[2], unsafe_keep_entry_points=True)
+        
+        # create all needed DMA buffers
+        inputs_in   = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs_in = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+        
+        inputs_comp = runtime.BufferArray(prog[1].entry_points[2].input, 1)
+        outputs_comp = runtime.BufferArray(prog[1].entry_points[2].output, 1)
+
+        inputs_out   = runtime.BufferArray(prog[2].entry_points[0].input, 1)
+        outputs_out = runtime.BufferArray(prog[2].entry_points[0].output, 1)
+     
+        # Move data to the chip
+        prog[0].entry_points[0].input.tensors[0].from_host(state, inputs_in[0])
+        dptr.invoke(inputs_in[0],outputs_in[0])
+        
+        # Run compute and move data back if needed.
+        for _ in range(nms):
+            for _ in range(40):
+                dptr.invoke(inputs_comp[0],outputs_comp[0])
+            dptr.invoke(inputs_out[0],outputs_out[0])
+            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
+            if probe:
+                trace.append(staten[0, :])
+
+        # Finished
+        if probe:
+            return tf.constant(state), np.array(trace)
+        else:
+            return tf.constant(state)
+
+    def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        trace = []
+        state  = np.array(state)
+        staten = np.zeros_like(state)
+        gj_src = np.array(gj_src)
+        gj_tgt = np.array(gj_tgt)
+        g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
+
+        if probe:
+            trace.append(state[0, :])
+
+
+        #Groq Chip with presistent data
+        shim = groq.runtime.DriverShim()
+        dptr = shim.next_available_device()
+        dptr.open()
+        prog = runtime.IOProgram(self.iop_path)
+        dptr.load(prog[0])
+        dptr.load(prog[1], unsafe_keep_entry_points=True)
+        dptr.load(prog[2], unsafe_keep_entry_points=True)
+        
+        # create all needed DMA buffers
+        inputs_in   = runtime.BufferArray(prog[0].entry_points[0].input, 1)
+        outputs_in = runtime.BufferArray(prog[0].entry_points[0].output, 1)
+
+        inputs_comp_in = runtime.BufferArray(prog[1].entry_points[1].input, 1)
+        outputs_comp_in = runtime.BufferArray(prog[1].entry_points[1].output, 1)
+        
+        inputs_comp = runtime.BufferArray(prog[1].entry_points[2].input, 1)
+        outputs_comp = runtime.BufferArray(prog[1].entry_points[2].output, 1)
+        
+        inputs_out   = runtime.BufferArray(prog[2].entry_points[0].input, 1)
+        outputs_out = runtime.BufferArray(prog[2].entry_points[0].output, 1)
+     
+        # Move data to the chip
+        prog[0].entry_points[0].input.tensors[0].from_host(state, inputs_in[0])
+        dptr.invoke(inputs_in[0],outputs_in[0])
+        prog[1].entry_points[1].input.tensors[0].from_host(gj_src, inputs_comp_in[0])
+        prog[1].entry_points[1].input.tensors[1].from_host(gj_tgt, inputs_comp_in[0])
+        prog[1].entry_points[1].input.tensors[2].from_host(g_gj, inputs_comp_in[0])
+        dptr.invoke(inputs_comp_in[0],outputs_comp_in[0])
+
+        
+        # Run compute and move data back if needed.
+        for _ in range(nms):
+            for _ in range(40):
+                dptr.invoke(inputs_comp[0],outputs_comp[0])
+            dptr.invoke(inputs_out[0],outputs_out[0])
+            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
+            if probe:
+                trace.append(staten[0, :])
+
+        # Finished
+        if probe:
+            return tf.constant(state), np.array(trace)
+        else:
+            return tf.constant(state)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="ioperf.runners.base_runner.BaseRunner" href="base_runner.html#ioperf.runners.base_runner.BaseRunner">BaseRunner</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.runners.GroqchipRunnerOpt2NoCopy.assemble"><code class="name flex">
+<span>def <span class="ident">assemble</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def assemble(self):
+    status = subprocess.call(
+        [
+            &#34;aa-latest&#34;,
+            &#34;--name&#34;,
+            f&#34;DataMoverIn&#34;,
+            &#34;-i&#34;,
+            self.aa_path   + &#34;.0.aa&#34;,
+            &#34;--output-iop&#34;,
+            self.iop_path  + &#34;.0.iop&#34;,
+            &#34;--no-metrics&#34;,
+            &#34;--auto-agt&#34;,
+            &#34;--auto-repeat&#34;,
+            &#34;--ifetch-slice-ordering&#34;,
+            &#34;round-robin&#34;,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Assembler call failed&#34;)
+
+    status = subprocess.call(
+        [
+            &#34;aa-latest&#34;,
+            &#34;--name&#34;,
+            f&#34;IOTimestep&#34;,
+            &#34;-i&#34;,
+            self.aa_path + &#34;.1.aa&#34;,
+            &#34;--output-iop&#34;,
+            self.iop_path  + &#34;.1.iop&#34;,
+            &#34;--no-metrics&#34;,
+            &#34;--program-package&#34;,
+            self.iop_path  + &#34;.0.iop&#34;,
+            &#34;--auto-agt&#34;,
+            &#34;--auto-repeat&#34;,
+            &#34;--ifetch-slice-ordering&#34;,
+            &#34;round-robin&#34;,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Assembler call failed&#34;)
+    
+    status = subprocess.call(
+        [
+            &#34;aa-latest&#34;,
+            &#34;--name&#34;,
+            f&#34;DataMoverOut&#34;,
+            &#34;-i&#34;,
+            self.aa_path + &#34;.2.aa&#34;,
+            &#34;--output-iop&#34;,
+            self.iop_path,
+            &#34;--no-metrics&#34;,
+            &#34;--auto-agt&#34;,
+            &#34;--auto-repeat&#34;,
+            &#34;--program-package&#34;,
+            self.iop_path  + &#34;.1.iop&#34;,
+            &#34;--ifetch-slice-ordering&#34;,
+            &#34;round-robin&#34;,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Assembler call failed&#34;)
+    
+    print(f&#34;[GroqAssembler] Finished {self.iop_path}&#34;)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.GroqchipRunnerOpt2NoCopy.compile"><code class="name flex">
+<span>def <span class="ident">compile</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compile(self):
+    # [ONNX] DATA MOVER to TSP
+    onnx_model, _ = tf2onnx.convert.from_function(
+        function=self.mkid(&#39;result_mover_in&#39;), 
+        input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name=&#34;input_mover_in&#34;),),
+        output_path=self.onnxFileTo,
+        opset=16,
+    )
+    # [ONNX] DATA MOVER from TSP
+    onnx_model, _ = tf2onnx.convert.from_function(
+        function=self.mkid(&#39;result_mover_out&#39;), 
+        input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name=&#34;input_mover_out&#34;),),
+        output_path=self.onnxFileFrom,
+        opset=16,
+    )
+
+    print(&#34;[GroqCompiler] Starting Groq compiler&#34;)
+    status = subprocess.call(
+        [
+        &#34;groq-compiler&#34;,
+        f&#34;-save-stats={self.aa_path}_compilerstats&#34;,
+        &#34;--coresident&#34;,
+        &#34;--persistent=result_mover_in,input_mover_out,state_next,state&#34;,
+        &#34;-o&#34;,
+        self.aa_path,
+        self.onnxFileTo,
+        self.onnx_path,
+        self.onnxFileFrom,
+        ],
+        stdout=open(os.devnull, &#34;wb&#34;),
+    )
+    if status != 0:
+        raise Exception(&#34;Compiler call failed&#34;)
+
+    print(self.aa_path)
+    # with open(f&#34;{self.aa_path}_compilerstats&#34;, &#34;r&#34;) as f:
+    #     self.compiler_stats = json.load(f)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.GroqchipRunnerOpt2NoCopy.mkid"><code class="name flex">
+<span>def <span class="ident">mkid</span></span>(<span>self, name)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def mkid(self,name):
+    def tf_identity(x):
+        return {name: x}
+    return tf.function(tf_identity)</code></pre>
 </details>
 </dd>
 </dl>
@@ -866,6 +1465,21 @@ in child classes to specify options.</p></div>
 <ul class="">
 <li><code><a title="ioperf.runners.GroqchipRunner.assemble" href="#ioperf.runners.GroqchipRunner.assemble">assemble</a></code></li>
 <li><code><a title="ioperf.runners.GroqchipRunner.compile" href="#ioperf.runners.GroqchipRunner.compile">compile</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ioperf.runners.GroqchipRunnerOpt1" href="#ioperf.runners.GroqchipRunnerOpt1">GroqchipRunnerOpt1</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.runners.GroqchipRunnerOpt1.assemble" href="#ioperf.runners.GroqchipRunnerOpt1.assemble">assemble</a></code></li>
+<li><code><a title="ioperf.runners.GroqchipRunnerOpt1.compile" href="#ioperf.runners.GroqchipRunnerOpt1.compile">compile</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ioperf.runners.GroqchipRunnerOpt2NoCopy" href="#ioperf.runners.GroqchipRunnerOpt2NoCopy">GroqchipRunnerOpt2NoCopy</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.runners.GroqchipRunnerOpt2NoCopy.assemble" href="#ioperf.runners.GroqchipRunnerOpt2NoCopy.assemble">assemble</a></code></li>
+<li><code><a title="ioperf.runners.GroqchipRunnerOpt2NoCopy.compile" href="#ioperf.runners.GroqchipRunnerOpt2NoCopy.compile">compile</a></code></li>
+<li><code><a title="ioperf.runners.GroqchipRunnerOpt2NoCopy.mkid" href="#ioperf.runners.GroqchipRunnerOpt2NoCopy.mkid">mkid</a></code></li>
 </ul>
 </li>
 <li>

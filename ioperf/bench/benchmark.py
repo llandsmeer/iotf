@@ -7,6 +7,8 @@ import numpy as np
 from ..runners import runners
 from .model_configuration import ModelConfiguration
 
+__all__ = ['Benchmark']
+
 EXECUTABLES = (
         'hostname', 'uname -a', 'lspci',
         'lsusb', 'lscpu', 'lsipc', 'nvidia-smi', 'tsp-ctl status'

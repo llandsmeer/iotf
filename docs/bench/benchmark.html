@@ -35,9 +35,11 @@ import numpy as np
 from ..runners import runners
 from .model_configuration import ModelConfiguration
 
+__all__ = [&#39;Benchmark&#39;]
+
 EXECUTABLES = (
         &#39;hostname&#39;, &#39;uname -a&#39;, &#39;lspci&#39;,
-        &#39;lsusb&#39;, &#39;lscpu&#39;, &#39;lsipc&#39;, &#39;nvidia-smi&#39;,
+        &#39;lsusb&#39;, &#39;lscpu&#39;, &#39;lsipc&#39;, &#39;nvidia-smi&#39;, &#39;tsp-ctl status&#39;
 )
 
 class bcolors:
@@ -377,66 +379,6 @@ class Benchmark:
 </dd>
 </dl>
 </dd>
-<dt id="ioperf.bench.benchmark.bcolors"><code class="flex name class">
-<span>class <span class="ident">bcolors</span></span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class bcolors:
-    HEADER = &#39;\033[95m&#39;
-    OKBLUE = &#39;\033[94m&#39;
-    OKCYAN = &#39;\033[96m&#39;
-    OKGREEN = &#39;\033[92m&#39;
-    WARNING = &#39;\033[93m&#39;
-    FAIL = &#39;\033[91m&#39;
-    ENDC = &#39;\033[0m&#39;
-    BOLD = &#39;\033[1m&#39;
-    UNDERLINE = &#39;\033[4m&#39;</code></pre>
-</details>
-<h3>Class variables</h3>
-<dl>
-<dt id="ioperf.bench.benchmark.bcolors.BOLD"><code class="name">var <span class="ident">BOLD</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.ENDC"><code class="name">var <span class="ident">ENDC</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.FAIL"><code class="name">var <span class="ident">FAIL</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.HEADER"><code class="name">var <span class="ident">HEADER</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.OKBLUE"><code class="name">var <span class="ident">OKBLUE</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.OKCYAN"><code class="name">var <span class="ident">OKCYAN</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.OKGREEN"><code class="name">var <span class="ident">OKGREEN</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.UNDERLINE"><code class="name">var <span class="ident">UNDERLINE</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="ioperf.bench.benchmark.bcolors.WARNING"><code class="name">var <span class="ident">WARNING</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-</dl>
-</dd>
 </dl>
 </section>
 </article>
@@ -460,20 +402,6 @@ class Benchmark:
 <li><code><a title="ioperf.bench.benchmark.Benchmark.register" href="#ioperf.bench.benchmark.Benchmark.register">register</a></code></li>
 <li><code><a title="ioperf.bench.benchmark.Benchmark.run" href="#ioperf.bench.benchmark.Benchmark.run">run</a></code></li>
 <li><code><a title="ioperf.bench.benchmark.Benchmark.write_hwinfo" href="#ioperf.bench.benchmark.Benchmark.write_hwinfo">write_hwinfo</a></code></li>
-</ul>
-</li>
-<li>
-<h4><code><a title="ioperf.bench.benchmark.bcolors" href="#ioperf.bench.benchmark.bcolors">bcolors</a></code></h4>
-<ul class="two-column">
-<li><code><a title="ioperf.bench.benchmark.bcolors.BOLD" href="#ioperf.bench.benchmark.bcolors.BOLD">BOLD</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.ENDC" href="#ioperf.bench.benchmark.bcolors.ENDC">ENDC</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.FAIL" href="#ioperf.bench.benchmark.bcolors.FAIL">FAIL</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.HEADER" href="#ioperf.bench.benchmark.bcolors.HEADER">HEADER</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.OKBLUE" href="#ioperf.bench.benchmark.bcolors.OKBLUE">OKBLUE</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.OKCYAN" href="#ioperf.bench.benchmark.bcolors.OKCYAN">OKCYAN</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.OKGREEN" href="#ioperf.bench.benchmark.bcolors.OKGREEN">OKGREEN</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.UNDERLINE" href="#ioperf.bench.benchmark.bcolors.UNDERLINE">UNDERLINE</a></code></li>
-<li><code><a title="ioperf.bench.benchmark.bcolors.WARNING" href="#ioperf.bench.benchmark.bcolors.WARNING">WARNING</a></code></li>
 </ul>
 </li>
 </ul>

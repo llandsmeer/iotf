@@ -3,6 +3,8 @@ import tensorflow as tf
 
 from .. import model
 
+__all__ = ['ModelConfiguration']
+
 class ModelConfiguration:
     def __init__(self, *, state, gj_src, gj_tgt):
         assert isinstance(state, tf.Tensor)

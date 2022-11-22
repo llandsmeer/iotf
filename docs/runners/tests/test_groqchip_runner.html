@@ -27,20 +27,93 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import pytest
+import numpy as np
+
 from ...bench.model_configuration import ModelConfiguration
 from .. import GroqchipRunner
+from .. import GroqchipRunnerOpt2NoCopy
+from .. import OnnxCpuRunner
 
 def test_single_ms_unconnected():
+    t = OnnxCpuRunner()
     x = GroqchipRunner()
-    m = ModelConfiguration.create_new(nneurons=64)
-    x.setup_using_model_config(m, gap_junctions=False)
-    x.run_unconnected(1, m.state)
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=False)
+    ns, o = x.run_unconnected(1, m1.state,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=False)
+    ns2, ot = t.run_unconnected(1, m2.state,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)
+    
 
 def test_single_ms_connected():
+    t = OnnxCpuRunner()
     x = GroqchipRunner()
-    m = ModelConfiguration.create_new(nneurons=64)
-    x.setup_using_model_config(m, gap_junctions=True)
-    x.run_with_gap_junctions(1, m.state, gj_src=m.gj_src, gj_tgt=m.gj_tgt)</code></pre>
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    
+    x.setup_using_model_config(m1, gap_junctions=True)
+    ns, o = x.run_with_gap_junctions(1, m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+
+    t.setup_using_model_config(m1, gap_junctions=True)
+    ns2, ot = t.run_with_gap_junctions(1, m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)
+    
+
+def test_opt2_single_ms_unconnected():
+    nms = 1
+    t =OnnxCpuRunner()
+    x =  GroqchipRunnerOpt2NoCopy()
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=False)
+    ns, o = x.run_unconnected(nms, m1.state,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=False)
+    ns2, ot = t.run_unconnected(nms, m2.state,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        print(&#34;groq chip&#34;)
+        print(o[-1])
+        print(&#34;cpu base&#34;)
+        print(ot[-1]) 
+        print(o.shape)
+        print(ot.shape)       
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)
+    
+
+def test_opt2_single_ms_connected():
+    nms = 1
+    t  = OnnxCpuRunner()
+    x  = GroqchipRunnerOpt2NoCopy()
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=True)
+    ns, o = x.run_with_gap_junctions(nms, m1.state, gj_src=m1.gj_src, gj_tgt=m1.gj_tgt,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=True)
+    ns2, ot = t.run_with_gap_junctions(nms,m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        print(&#34;groq chip&#34;)
+        print(o)
+        print(&#34;cpu base&#34;)
+        print(ot) 
+        print(o.shape)
+        print(ot.shape)       
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)</code></pre>
 </details>
 </section>
 <section>
@@ -50,6 +123,72 @@ def test_single_ms_connected():
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_connected"><code class="name flex">
+<span>def <span class="ident">test_opt2_single_ms_connected</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_opt2_single_ms_connected():
+    nms = 1
+    t  = OnnxCpuRunner()
+    x  = GroqchipRunnerOpt2NoCopy()
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=True)
+    ns, o = x.run_with_gap_junctions(nms, m1.state, gj_src=m1.gj_src, gj_tgt=m1.gj_tgt,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=True)
+    ns2, ot = t.run_with_gap_junctions(nms,m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        print(&#34;groq chip&#34;)
+        print(o)
+        print(&#34;cpu base&#34;)
+        print(ot) 
+        print(o.shape)
+        print(ot.shape)       
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_unconnected"><code class="name flex">
+<span>def <span class="ident">test_opt2_single_ms_unconnected</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def test_opt2_single_ms_unconnected():
+    nms = 1
+    t =OnnxCpuRunner()
+    x =  GroqchipRunnerOpt2NoCopy()
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=False)
+    ns, o = x.run_unconnected(nms, m1.state,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=False)
+    ns2, ot = t.run_unconnected(nms, m2.state,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        print(&#34;groq chip&#34;)
+        print(o[-1])
+        print(&#34;cpu base&#34;)
+        print(ot[-1]) 
+        print(o.shape)
+        print(ot.shape)       
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)</code></pre>
+</details>
+</dd>
 <dt id="ioperf.runners.tests.test_groqchip_runner.test_single_ms_connected"><code class="name flex">
 <span>def <span class="ident">test_single_ms_connected</span></span>(<span>)</span>
 </code></dt>
@@ -60,10 +199,20 @@ def test_single_ms_connected():
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def test_single_ms_connected():
+    t = OnnxCpuRunner()
     x = GroqchipRunner()
-    m = ModelConfiguration.create_new(nneurons=64)
-    x.setup_using_model_config(m, gap_junctions=True)
-    x.run_with_gap_junctions(1, m.state, gj_src=m.gj_src, gj_tgt=m.gj_tgt)</code></pre>
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    
+    x.setup_using_model_config(m1, gap_junctions=True)
+    ns, o = x.run_with_gap_junctions(1, m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+
+    t.setup_using_model_config(m1, gap_junctions=True)
+    ns2, ot = t.run_with_gap_junctions(1, m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)</code></pre>
 </details>
 </dd>
 <dt id="ioperf.runners.tests.test_groqchip_runner.test_single_ms_unconnected"><code class="name flex">
@@ -76,10 +225,20 @@ def test_single_ms_connected():
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def test_single_ms_unconnected():
+    t = OnnxCpuRunner()
     x = GroqchipRunner()
-    m = ModelConfiguration.create_new(nneurons=64)
-    x.setup_using_model_config(m, gap_junctions=False)
-    x.run_unconnected(1, m.state)</code></pre>
+
+    m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
+    m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
+
+    x.setup_using_model_config(m1, gap_junctions=False)
+    ns, o = x.run_unconnected(1, m1.state,probe=True)
+
+    t.setup_using_model_config(m2, gap_junctions=False)
+    ns2, ot = t.run_unconnected(1, m2.state,probe=True)
+    
+    if(np.allclose(ot,o) == False ):
+        raise Exception(&#34;Sorry, outcome is not close enough to cpu baseline&#34;)</code></pre>
 </details>
 </dd>
 </dl>
@@ -100,6 +259,8 @@ def test_single_ms_connected():
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_connected" href="#ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_connected">test_opt2_single_ms_connected</a></code></li>
+<li><code><a title="ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_unconnected" href="#ioperf.runners.tests.test_groqchip_runner.test_opt2_single_ms_unconnected">test_opt2_single_ms_unconnected</a></code></li>
 <li><code><a title="ioperf.runners.tests.test_groqchip_runner.test_single_ms_connected" href="#ioperf.runners.tests.test_groqchip_runner.test_single_ms_connected">test_single_ms_connected</a></code></li>
 <li><code><a title="ioperf.runners.tests.test_groqchip_runner.test_single_ms_unconnected" href="#ioperf.runners.tests.test_groqchip_runner.test_single_ms_unconnected">test_single_ms_unconnected</a></code></li>
 </ul>
