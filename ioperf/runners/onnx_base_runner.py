@@ -26,13 +26,14 @@ class OnnxBaseRunner(BaseRunner):
 
     def make_ort_session(self):
         sess_options = ort.SessionOptions()
-        sess_options.use_deterministic_compute = True
+        #sess_options.use_deterministic_compute = True
+        sess_options.log_severity_level = 0
         # GRAPH optimalizations
         #   GraphOptimizationLevel::ORT_DISABLE_ALL -> Disables all optimizations
         #   GraphOptimizationLevel::ORT_ENABLE_BASIC -> Enables basic optimizations
         #   GraphOptimizationLevel::ORT_ENABLE_EXTENDED -> Enables basic and extended optimizations
         #   GraphOptimizationLevel::ORT_ENABLE_ALL -> Enables all available optimizations including layout optimizations
-        # sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED 
+        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         # sess_options.optimized_model_filepath = "/tmp/io_optimized_model.onnx"  #safe the optimilized graph here!
 
         # ENABLE PROFILING

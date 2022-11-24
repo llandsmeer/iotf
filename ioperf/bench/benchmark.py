@@ -97,8 +97,11 @@ class Benchmark:
                         _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
                         b = time.perf_counter()
                         self.register('run_unconnected_probe', a, b, config, runner, trace)
-                except:
-                    self.log(f"An exception occurred {type(x).__name__} ")
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ex:
+                    self.log(f"An {type(ex)} occurred {type(x).__name__} ")
+                    print(repr(ex))
                 try:
                     if self.run_connected:
                         a = time.perf_counter()
@@ -114,7 +117,10 @@ class Benchmark:
                         _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
                         b = time.perf_counter()
                         self.register('run_connected_probe', a, b, config, runner, trace)
-                except:
-                    self.log(f"An exception occurred {type(x).__name__} ")
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ex:
+                    self.log(f"An {type(ex)} occurred {type(x).__name__} ")
+                    print(repr(ex))
         with open(self.log_file, 'a') as f:
             print('done', file=f)
