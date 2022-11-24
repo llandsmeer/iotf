@@ -5,3 +5,4 @@ __all__ = ['OnnxTensorRTRunner']
 class OnnxTensorRTRunner(OnnxBaseRunner):
     '''TensorrtExecutionProvider'''
     provider = 'TensorrtExecutionProvider'
+    device_type = 'cuda'
