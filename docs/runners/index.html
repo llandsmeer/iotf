@@ -346,9 +346,7 @@ configuration specific to the runner</p></div>
             def loop_body(state):
                 return timestep(state=state, **kwargs)[&#39;state_next&#39;]
             for _ in range(nms):
-                print(state.shape)
                 state = ipu.loops.repeat(40, loop_body, state)
-                print(state.shape)
                 if probe:
                     trace.append(state[0,:].numpy())
         if probe:
