@@ -17,6 +17,7 @@ class OnnxBaseRunner(BaseRunner):
     '''
     provider = '<placeholder>'
     device_type = '<placeholder>'
+    option = '<placeholder>'
 
     def is_supported(self):
         return self.provider in ort.get_available_providers()
@@ -29,7 +30,7 @@ class OnnxBaseRunner(BaseRunner):
     def make_ort_session(self):
         sess_options = ort.SessionOptions()
         #sess_options.use_deterministic_compute = True
-        sess_options.log_severity_level = 0
+        # sess_options.log_severity_level = 0
         # GRAPH optimalizations
         #   GraphOptimizationLevel::ORT_DISABLE_ALL -> Disables all optimizations
         #   GraphOptimizationLevel::ORT_ENABLE_BASIC -> Enables basic optimizations
@@ -42,9 +43,11 @@ class OnnxBaseRunner(BaseRunner):
         # sess_options.enable_profiling = True
 
         # ENABLE MULTI TREAD / NODE   (intra == openMP inside a node, INTRA == multiNODE)
-        # opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL  # ORT_PARALLEL
+        if self.option == "mt":
+            sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL  # ORT_PARALLEL
         # opts.inter_op_num_threads = 0
         # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
+        
         return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
@@ -63,9 +66,9 @@ class OnnxBaseRunner(BaseRunner):
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
         args = {
-            'state': ort.OrtValue.ortvalue_from_numpy(state.numpy(), device_type=self.device_type, device_id=0),
-            'gj_src': ort.OrtValue.ortvalue_from_numpy(gj_src.numpy(), device_type=self.device_type, device_id=0),
-            'gj_tgt': ort.OrtValue.ortvalue_from_numpy(gj_tgt.numpy(), device_type=self.device_type, device_id=0),
+            'state': ort.OrtValue.ortvalue_from_numpy(state.numpy() ), #, device_type=self.device_type, device_id=0),
+            'gj_src': ort.OrtValue.ortvalue_from_numpy(gj_src.numpy() ), #, device_type=self.device_type, device_id=0),
+            'gj_tgt': ort.OrtValue.ortvalue_from_numpy(gj_tgt.numpy() ), #, device_type=self.device_type, device_id=0),
             'g_gj': ort.OrtValue.ortvalue_from_numpy(np.array(g_gj, dtype='float32'))
         }
         state_next =  ort.OrtValue.ortvalue_from_numpy(np.zeros_like(state.numpy()), device_type=self.device_type, device_id=0)
