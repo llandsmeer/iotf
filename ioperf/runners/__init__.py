@@ -13,6 +13,7 @@ from .onnx_cpu_runner import OnnxCpuRunner
 from .onnx_cpu_runner_mt import OnnxCpuRunnerMt
 from .onnx_cuda_runner import OnnxCUDARunner
 from .onnx_tensorrt_runner import OnnxTensorRTRunner
+from .tf_base_runner import TfBaseRunner
 
 __all__ = [
     'BaseRunner',
@@ -25,6 +26,7 @@ __all__ = [
     'OnnxCpuRunnerMt',
     'OnnxCUDARunner',
     'OnnxTensorRTRunner',
+    'TfBaseRunner',
     'runners'
 ]
 
@@ -33,7 +35,8 @@ runners = [
     # GroqchipRunnerOpt2NoCopy,
     GraphcoreRunner,
     OnnxCpuRunner,
-    OnnxCpuRunnerMt,
+    # OnnxCpuRunnerMt,
+    TfBaseRunner
     OnnxCUDARunner,
     OnnxTensorRTRunner
 ]

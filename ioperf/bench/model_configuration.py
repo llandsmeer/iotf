@@ -23,10 +23,10 @@ class ModelConfiguration:
         return int(self.gj_src.shape[0])
 
     @classmethod
-    def create_new(cls, nneurons, rmax=4, seed=None):
+    def create_new(cls, nneurons, rmax=4, seed=None, dtype=tf.float32):
         if seed is not None:
             np.random.seed(seed) # this is ugly
-        state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
+        state = model.make_initial_neuron_state(nneurons, dtype=dtype, V_axon=None, V_dend=None, V_soma=None)
         gj_src, gj_tgt = model.sample_connections_3d(nneurons, rmax=rmax)
         return cls(state=state, gj_src=gj_src, gj_tgt=gj_tgt)
 

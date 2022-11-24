@@ -23,7 +23,8 @@ def main():
     hostname = socket.gethostname()
     gitHash = get_git_revision_short_hash()
     date = datetime.datetime.now().strftime('%m-%d-%Y')    
-    log_file =  hostname  + "_" + date + "_" + gitHash
+    prefix = ""
+    log_file =  prefix + hostname  + "_" + date + "_" + gitHash
     log_file_o = log_file 
     log_file = log_file_o + ".dat"
     count = 0
