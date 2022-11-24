@@ -33,6 +33,7 @@ __all__ = [&#39;OnnxCpuRunner&#39;]
 class OnnxCpuRunner(OnnxBaseRunner):
     &#39;&#39;&#39;CPUExecutionProvider&#39;&#39;&#39;
     provider = &#39;CPUExecutionProvider&#39;
+    device_type = &#39;cpu&#39;
 
     def is_supported(self):
         return True</code></pre>
@@ -59,6 +60,7 @@ class OnnxCpuRunner(OnnxBaseRunner):
 <pre><code class="python">class OnnxCpuRunner(OnnxBaseRunner):
     &#39;&#39;&#39;CPUExecutionProvider&#39;&#39;&#39;
     provider = &#39;CPUExecutionProvider&#39;
+    device_type = &#39;cpu&#39;
 
     def is_supported(self):
         return True</code></pre>
@@ -70,6 +72,10 @@ class OnnxCpuRunner(OnnxBaseRunner):
 </ul>
 <h3>Class variables</h3>
 <dl>
+<dt id="ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.device_type"><code class="name">var <span class="ident">device_type</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.provider"><code class="name">var <span class="ident">provider</span></code></dt>
 <dd>
 <div class="desc"></div>
@@ -107,6 +113,7 @@ class OnnxCpuRunner(OnnxBaseRunner):
 <li>
 <h4><code><a title="ioperf.runners.onnx_cpu_runner.OnnxCpuRunner" href="#ioperf.runners.onnx_cpu_runner.OnnxCpuRunner">OnnxCpuRunner</a></code></h4>
 <ul class="">
+<li><code><a title="ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.device_type" href="#ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.device_type">device_type</a></code></li>
 <li><code><a title="ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.provider" href="#ioperf.runners.onnx_cpu_runner.OnnxCpuRunner.provider">provider</a></code></li>
 </ul>
 </li>

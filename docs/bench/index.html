@@ -143,8 +143,11 @@ __all__ = [&#39;ModelConfiguration&#39;, &#39;Benchmark&#39;]</code></pre>
                         _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
                         b = time.perf_counter()
                         self.register(&#39;run_unconnected_probe&#39;, a, b, config, runner, trace)
-                except:
-                    self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ex:
+                    self.log(f&#34;An occurred {type(x).__name__} &#34;)
+                    print(repr(ex))
                 try:
                     if self.run_connected:
                         a = time.perf_counter()
@@ -160,8 +163,11 @@ __all__ = [&#39;ModelConfiguration&#39;, &#39;Benchmark&#39;]</code></pre>
                         _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
                         b = time.perf_counter()
                         self.register(&#39;run_connected_probe&#39;, a, b, config, runner, trace)
-                except:
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ex:
                     self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+                    print(repr(ex))
         with open(self.log_file, &#39;a&#39;) as f:
             print(&#39;done&#39;, file=f)</code></pre>
 </details>
@@ -241,8 +247,11 @@ __all__ = [&#39;ModelConfiguration&#39;, &#39;Benchmark&#39;]</code></pre>
                     _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
                     b = time.perf_counter()
                     self.register(&#39;run_unconnected_probe&#39;, a, b, config, runner, trace)
-            except:
-                self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
+                self.log(f&#34;An occurred {type(x).__name__} &#34;)
+                print(repr(ex))
             try:
                 if self.run_connected:
                     a = time.perf_counter()
@@ -258,8 +267,11 @@ __all__ = [&#39;ModelConfiguration&#39;, &#39;Benchmark&#39;]</code></pre>
                     _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
                     b = time.perf_counter()
                     self.register(&#39;run_connected_probe&#39;, a, b, config, runner, trace)
-            except:
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
                 self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+                print(repr(ex))
     with open(self.log_file, &#39;a&#39;) as f:
         print(&#39;done&#39;, file=f)</code></pre>
 </details>

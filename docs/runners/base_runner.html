@@ -57,12 +57,12 @@ class BaseRunner:
         &#39;&#39;&#39;
         raise NotImplementedError()
 
-    def setup_using_model_config(self, model_config, *, gap_junctions):
+    def setup_using_model_config(self, model_config, *, gap_junctions, **kwargs):
         assert gap_junctions in {True, False}
         if gap_junctions:
-            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict(), **kwargs)
         else:
-            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict(), **kwargs)
 
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         &#39;&#39;&#39;
@@ -126,12 +126,12 @@ class BaseRunner:
         &#39;&#39;&#39;
         raise NotImplementedError()
 
-    def setup_using_model_config(self, model_config, *, gap_junctions):
+    def setup_using_model_config(self, model_config, *, gap_junctions, **kwargs):
         assert gap_junctions in {True, False}
         if gap_junctions:
-            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+            self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict(), **kwargs)
         else:
-            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())
+            self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict(), **kwargs)
 
     def run_unconnected(self, nsteps, state, probe=False, **kwargs):
         &#39;&#39;&#39;
@@ -235,7 +235,7 @@ such that it can be passed unchanged to make_tf_function()</p></div>
 </details>
 </dd>
 <dt id="ioperf.runners.base_runner.BaseRunner.setup_using_model_config"><code class="name flex">
-<span>def <span class="ident">setup_using_model_config</span></span>(<span>self, model_config, *, gap_junctions)</span>
+<span>def <span class="ident">setup_using_model_config</span></span>(<span>self, model_config, *, gap_junctions, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -243,12 +243,12 @@ such that it can be passed unchanged to make_tf_function()</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def setup_using_model_config(self, model_config, *, gap_junctions):
+<pre><code class="python">def setup_using_model_config(self, model_config, *, gap_junctions, **kwargs):
     assert gap_junctions in {True, False}
     if gap_junctions:
-        self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict())
+        self.setup(ncells=model_config.ncells, ngj=model_config.ngj, argconfig=dict(), **kwargs)
     else:
-        self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict())</code></pre>
+        self.setup(ncells=model_config.ncells, ngj=0, argconfig=dict(), **kwargs)</code></pre>
 </details>
 </dd>
 <dt id="ioperf.runners.base_runner.BaseRunner.tagline"><code class="name flex">

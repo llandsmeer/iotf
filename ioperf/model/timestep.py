@@ -41,7 +41,8 @@ def timestep(
         I_app           =   0.0,
         gj_src          = None,
         gj_tgt          = None,
-        g_gj            = 0.05
+        g_gj            = 0.05,
+        unroll_gj       = 0
         ):
     '''
     Raw python implementation of the IO model using tensorflow math functions.
@@ -151,11 +152,18 @@ def timestep(
 
     # CURRENT: Dend application current (I_app)
 
-    if gj_src is not None and gj_tgt is not None:
+    if unroll_gj == 0 and (gj_src is not None and gj_tgt is not None):
         vdiff = tf.gather(V_dend, gj_src) - tf.gather(V_dend, gj_tgt)
         cx36_current_per_gj = (0.2 + 0.8 * tf.exp(-vdiff*vdiff / 100)) * vdiff * g_gj
         I_gapp = tf.tensor_scatter_nd_add(tf.zeros_like(V_dend), tf.reshape(gj_tgt, (-1, 1)),
             cx36_current_per_gj)
+    elif gj_src is not None and gj_tgt is not None:
+        I_gapp = 0
+        for i in range(0, gj_src.shape[0], unroll_gj):
+            end = min(i + unroll_gj, gj_src.shape[0])
+            vdiff = tf.gather(V_dend, gj_src[i:end]) - tf.gather(V_dend, gj_tgt[i:end])
+            cx36_current_per_gj = (0.2 + 0.8 * tf.exp(-vdiff*vdiff / 100)) * vdiff * g_gj
+            I_gapp += tf.tensor_scatter_nd_add(tf.zeros_like(V_dend), tf.reshape(gj_tgt[i:end], (-1, 1)), cx36_current_per_gj)
     else:
         I_gapp = 0
 

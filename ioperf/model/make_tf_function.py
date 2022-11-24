@@ -5,7 +5,7 @@ from .timestep import timestep
 
 NUM_STATE_VARS = 14
 
-def make_tf_function(*, ngj=0, ncells=None, argconfig=()):
+def make_tf_function(*, ngj=0, ncells=None, argconfig=(), unroll_gj=0):
     '''
     Build an optimized timestep tensorflow function.
 
@@ -72,6 +72,8 @@ def make_tf_function(*, ngj=0, ncells=None, argconfig=()):
         argspec.append(tf.TensorSpec(ngj, tf.int32, name='gj_src'))
         argspec.append(tf.TensorSpec(ngj, tf.int32, name='gj_tgt'))
         argspec.append(tf.TensorSpec((), tf.float32, name='g_gj'))
+
+    call_args.append(f'unroll_gj={int(unroll_gj)}')
 
     function_args = ', '.join(function_args)
     call_args = ', '.join(call_args)
