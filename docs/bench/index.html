@@ -29,7 +29,12 @@
 </summary>
 <pre><code class="python">&#39;&#39;&#39;
 Benchmarking module
-&#39;&#39;&#39;</code></pre>
+&#39;&#39;&#39;
+
+from .model_configuration import ModelConfiguration
+from .benchmark import Benchmark
+
+__all__ = [&#39;ModelConfiguration&#39;, &#39;Benchmark&#39;]</code></pre>
 </details>
 </section>
 <section>
@@ -54,6 +59,385 @@ Benchmarking module
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="ioperf.bench.Benchmark"><code class="flex name class">
+<span>class <span class="ident">Benchmark</span></span>
+<span>(</span><span>log_file)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Benchmark:
+    def __init__(self, log_file):
+        self.base_powers = 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+        self.seed = 42
+        self.run_connected = True
+        self.run_unconnected = True
+        self.n_ms = 100
+        self.n_rep = 5
+        self.n_probe = 10000
+        self.log_file = log_file
+
+    def log(self, *args):
+        raw = &#39; &#39;.join(map(str, args))
+        print(bcolors.OKGREEN + raw[:100] + bcolors.ENDC)
+        with open(self.log_file, &#39;a&#39;) as f:
+            print(raw, file=f)
+
+    def _setup(self):
+        self.model_configs = [
+                ModelConfiguration.create_new(
+                    nneurons=bp**3, seed=self.seed)
+                for bp in self.base_powers]
+        bp = &#39;,&#39;.join(map(str, self.base_powers))
+        self.log(f&#39;bench b={bp} seed={self.seed} n_ms={self.n_ms} n_rep={self.n_rep} n_probe={self.n_probe} unconnected={self.run_unconnected} connected={self.run_connected}&#39;)
+
+    def register(self, key, a, b, config, runner, arg=None):
+        if isinstance(arg, np.ndarray):
+            arg_p = f&#39;{arg.dtype}{arg.shape}&#39;
+            buf = io.BytesIO()
+            np.savez_compressed(buf, arg=arg)
+            arg = base64.b64encode(buf.getvalue()).decode(&#39;latin1&#39;)
+        else:
+            arg_p = arg
+            arg = str(arg)
+        self.log(&#39;row&#39;, type(runner).__name__, config.ncells, config.ngj, key, b - a, arg)
+
+    def write_hwinfo(self):
+        for e in EXECUTABLES:
+            ee = e.replace(&#39; &#39;, &#39;_&#39;)
+            res = subprocess.getoutput(e)
+            for line in res.splitlines():
+                self.log(&#39;hwinfo&#39;, ee, line)
+
+
+    def run(self):
+        self._setup()
+        supported_runners = []
+        for Runner in runners:
+            x = Runner()
+            if x.is_supported():
+                supported_runners.append(x)
+                self.log(f&#39;runner supported {type(x).__name__} {x.tagline()}&#39;)
+            else:
+                self.log(f&#39;runner unsupported {type(x).__name__}&#39;)
+        self.write_hwinfo()
+        for config in self.model_configs:
+            for runner in supported_runners:
+                try:
+                    if self.run_unconnected:
+                        a = time.perf_counter()
+                        runner.setup_using_model_config(config, gap_junctions=False)
+                        b = time.perf_counter()
+                        self.register(&#39;setup_unconnected&#39;, a, b, config, runner)
+                        for i in range(self.n_rep):
+                            a = time.perf_counter()
+                            runner.run_unconnected(self.n_ms, config.state)
+                            b = time.perf_counter()
+                            self.register(&#39;run_unconnected_perf&#39;, a, b, config, runner, i)
+                        a = time.perf_counter()
+                        _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
+                        b = time.perf_counter()
+                        self.register(&#39;run_unconnected_probe&#39;, a, b, config, runner, trace)
+                except:
+                    self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+                try:
+                    if self.run_connected:
+                        a = time.perf_counter()
+                        runner.setup_using_model_config(config, gap_junctions=True)
+                        b = time.perf_counter()
+                        self.register(&#39;setup_connected&#39;, a, b, config, runner)
+                        for i in range(self.n_rep):
+                            a = time.perf_counter()
+                            runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
+                            b = time.perf_counter()
+                            self.register(&#39;run_connected_perf&#39;, a, b, config, runner, i)
+                        a = time.perf_counter()
+                        _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
+                        b = time.perf_counter()
+                        self.register(&#39;run_connected_probe&#39;, a, b, config, runner, trace)
+                except:
+                    self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+        with open(self.log_file, &#39;a&#39;) as f:
+            print(&#39;done&#39;, file=f)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.bench.Benchmark.log"><code class="name flex">
+<span>def <span class="ident">log</span></span>(<span>self, *args)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def log(self, *args):
+    raw = &#39; &#39;.join(map(str, args))
+    print(bcolors.OKGREEN + raw[:100] + bcolors.ENDC)
+    with open(self.log_file, &#39;a&#39;) as f:
+        print(raw, file=f)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.Benchmark.register"><code class="name flex">
+<span>def <span class="ident">register</span></span>(<span>self, key, a, b, config, runner, arg=None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def register(self, key, a, b, config, runner, arg=None):
+    if isinstance(arg, np.ndarray):
+        arg_p = f&#39;{arg.dtype}{arg.shape}&#39;
+        buf = io.BytesIO()
+        np.savez_compressed(buf, arg=arg)
+        arg = base64.b64encode(buf.getvalue()).decode(&#39;latin1&#39;)
+    else:
+        arg_p = arg
+        arg = str(arg)
+    self.log(&#39;row&#39;, type(runner).__name__, config.ncells, config.ngj, key, b - a, arg)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.Benchmark.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(self):
+    self._setup()
+    supported_runners = []
+    for Runner in runners:
+        x = Runner()
+        if x.is_supported():
+            supported_runners.append(x)
+            self.log(f&#39;runner supported {type(x).__name__} {x.tagline()}&#39;)
+        else:
+            self.log(f&#39;runner unsupported {type(x).__name__}&#39;)
+    self.write_hwinfo()
+    for config in self.model_configs:
+        for runner in supported_runners:
+            try:
+                if self.run_unconnected:
+                    a = time.perf_counter()
+                    runner.setup_using_model_config(config, gap_junctions=False)
+                    b = time.perf_counter()
+                    self.register(&#39;setup_unconnected&#39;, a, b, config, runner)
+                    for i in range(self.n_rep):
+                        a = time.perf_counter()
+                        runner.run_unconnected(self.n_ms, config.state)
+                        b = time.perf_counter()
+                        self.register(&#39;run_unconnected_perf&#39;, a, b, config, runner, i)
+                    a = time.perf_counter()
+                    _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
+                    b = time.perf_counter()
+                    self.register(&#39;run_unconnected_probe&#39;, a, b, config, runner, trace)
+            except:
+                self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+            try:
+                if self.run_connected:
+                    a = time.perf_counter()
+                    runner.setup_using_model_config(config, gap_junctions=True)
+                    b = time.perf_counter()
+                    self.register(&#39;setup_connected&#39;, a, b, config, runner)
+                    for i in range(self.n_rep):
+                        a = time.perf_counter()
+                        runner.run_with_gap_junctions(self.n_ms, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
+                        b = time.perf_counter()
+                        self.register(&#39;run_connected_perf&#39;, a, b, config, runner, i)
+                    a = time.perf_counter()
+                    _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
+                    b = time.perf_counter()
+                    self.register(&#39;run_connected_probe&#39;, a, b, config, runner, trace)
+            except:
+                self.log(f&#34;An exception occurred {type(x).__name__} &#34;)
+    with open(self.log_file, &#39;a&#39;) as f:
+        print(&#39;done&#39;, file=f)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.Benchmark.write_hwinfo"><code class="name flex">
+<span>def <span class="ident">write_hwinfo</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_hwinfo(self):
+    for e in EXECUTABLES:
+        ee = e.replace(&#39; &#39;, &#39;_&#39;)
+        res = subprocess.getoutput(e)
+        for line in res.splitlines():
+            self.log(&#39;hwinfo&#39;, ee, line)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="ioperf.bench.ModelConfiguration"><code class="flex name class">
+<span>class <span class="ident">ModelConfiguration</span></span>
+<span>(</span><span>*, state, gj_src, gj_tgt)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ModelConfiguration:
+    def __init__(self, *, state, gj_src, gj_tgt):
+        assert isinstance(state, tf.Tensor)
+        assert isinstance(gj_src, tf.Tensor)
+        assert isinstance(gj_tgt, tf.Tensor)
+        self.state = state
+        self.gj_src = gj_src
+        self.gj_tgt = gj_tgt
+
+    @property
+    def ncells(self):
+        return int(self.state.shape[1])
+
+    @property
+    def ngj(self):
+        return int(self.gj_src.shape[0])
+
+    @classmethod
+    def create_new(cls, nneurons, rmax=4, seed=None):
+        if seed is not None:
+            np.random.seed(seed) # this is ugly
+        state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
+        gj_src, gj_tgt = model.sample_connections_3d(nneurons, rmax=rmax)
+        return cls(state=state, gj_src=gj_src, gj_tgt=gj_tgt)
+
+    def save(self, filename):
+        if not filename.endswith(&#39;.npz&#39;):
+            filename += &#39;.npz&#39;
+        np.savez_compressed(
+                filename,
+                gj_src=self.gj_src.numpy(),
+                gj_tgt=self.gj_tgt.numpy(),
+                state=self.state.numpy()
+                )
+
+    @classmethod
+    def load(cls, filename):
+        if not filename.endswith(&#39;.npz&#39;):
+            filename += &#39;.npz&#39;
+        f = np.load(filename)
+        return cls(
+                state=tf.constant(f[&#39;state&#39;]),
+                gj_src=tf.constant(f[&#39;gj_src&#39;]),
+                gj_tgt=tf.constant(f[&#39;gj_tgt&#39;])
+                )
+
+    def __eq__(self, other):
+        return np.allclose(self.state, other.state) and \
+               np.all(self.gj_src == other.gj_src) and \
+               np.all(self.gj_tgt == other.gj_tgt)</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="ioperf.bench.ModelConfiguration.create_new"><code class="name flex">
+<span>def <span class="ident">create_new</span></span>(<span>nneurons, rmax=4, seed=None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def create_new(cls, nneurons, rmax=4, seed=None):
+    if seed is not None:
+        np.random.seed(seed) # this is ugly
+    state = model.make_initial_neuron_state(nneurons, dtype=tf.float32, V_axon=None, V_dend=None, V_soma=None)
+    gj_src, gj_tgt = model.sample_connections_3d(nneurons, rmax=rmax)
+    return cls(state=state, gj_src=gj_src, gj_tgt=gj_tgt)</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.ModelConfiguration.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>filename)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def load(cls, filename):
+    if not filename.endswith(&#39;.npz&#39;):
+        filename += &#39;.npz&#39;
+    f = np.load(filename)
+    return cls(
+            state=tf.constant(f[&#39;state&#39;]),
+            gj_src=tf.constant(f[&#39;gj_src&#39;]),
+            gj_tgt=tf.constant(f[&#39;gj_tgt&#39;])
+            )</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="ioperf.bench.ModelConfiguration.ncells"><code class="name">var <span class="ident">ncells</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def ncells(self):
+    return int(self.state.shape[1])</code></pre>
+</details>
+</dd>
+<dt id="ioperf.bench.ModelConfiguration.ngj"><code class="name">var <span class="ident">ngj</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def ngj(self):
+    return int(self.gj_src.shape[0])</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="ioperf.bench.ModelConfiguration.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self, filename)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save(self, filename):
+    if not filename.endswith(&#39;.npz&#39;):
+        filename += &#39;.npz&#39;
+    np.savez_compressed(
+            filename,
+            gj_src=self.gj_src.numpy(),
+            gj_tgt=self.gj_tgt.numpy(),
+            state=self.state.numpy()
+            )</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -72,6 +456,29 @@ Benchmarking module
 <li><code><a title="ioperf.bench.benchmark" href="benchmark.html">ioperf.bench.benchmark</a></code></li>
 <li><code><a title="ioperf.bench.model_configuration" href="model_configuration.html">ioperf.bench.model_configuration</a></code></li>
 <li><code><a title="ioperf.bench.tests" href="tests/index.html">ioperf.bench.tests</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="ioperf.bench.Benchmark" href="#ioperf.bench.Benchmark">Benchmark</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.bench.Benchmark.log" href="#ioperf.bench.Benchmark.log">log</a></code></li>
+<li><code><a title="ioperf.bench.Benchmark.register" href="#ioperf.bench.Benchmark.register">register</a></code></li>
+<li><code><a title="ioperf.bench.Benchmark.run" href="#ioperf.bench.Benchmark.run">run</a></code></li>
+<li><code><a title="ioperf.bench.Benchmark.write_hwinfo" href="#ioperf.bench.Benchmark.write_hwinfo">write_hwinfo</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="ioperf.bench.ModelConfiguration" href="#ioperf.bench.ModelConfiguration">ModelConfiguration</a></code></h4>
+<ul class="">
+<li><code><a title="ioperf.bench.ModelConfiguration.create_new" href="#ioperf.bench.ModelConfiguration.create_new">create_new</a></code></li>
+<li><code><a title="ioperf.bench.ModelConfiguration.load" href="#ioperf.bench.ModelConfiguration.load">load</a></code></li>
+<li><code><a title="ioperf.bench.ModelConfiguration.ncells" href="#ioperf.bench.ModelConfiguration.ncells">ncells</a></code></li>
+<li><code><a title="ioperf.bench.ModelConfiguration.ngj" href="#ioperf.bench.ModelConfiguration.ngj">ngj</a></code></li>
+<li><code><a title="ioperf.bench.ModelConfiguration.save" href="#ioperf.bench.ModelConfiguration.save">save</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

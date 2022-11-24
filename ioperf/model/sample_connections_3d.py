@@ -5,7 +5,9 @@ def sample_connections_3d(
         nneurons,
         nconnections=10,
         rmax=2,
-        connection_probability=lambda r: np.exp(-(r/4)**2)):
+        connection_probability=lambda r: np.exp(-(r/4)**2),
+        normalize_by_dr=True
+        ):
     '''
     (Gaussian) connection sampling in a cube. `nneurons` must thus
     be a power of 3 integer. `nconnections` is  amount of connections
@@ -38,10 +40,13 @@ def sample_connections_3d(
     # next, there is a ~r^2 increase in point density per r,
     # and very non uniform distribution of those due to
     # the integer grid. let's remove that bias
-    _, r_uniq_idx = np.unique(r, return_inverse=True)
+    ro, r_uniq_idx = np.unique(r, return_inverse=True)
     r_idx_freq = np.bincount(r_uniq_idx)
     r_freq = r_idx_freq[r_uniq_idx]
     P = P / r_freq
+    if normalize_by_dr:
+        dr = 0.5*np.diff(ro, append=rmax)[r_uniq_idx] + 0.5*np.diff(ro, prepend=0)[r_uniq_idx]
+        P = P * dr
     # P must sum up to 1
     P = P / P.sum()
 
