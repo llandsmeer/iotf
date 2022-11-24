@@ -5,3 +5,4 @@ __all__ = ['OnnxCUDARunner']
 class OnnxCUDARunner(OnnxBaseRunner):
     '''CUDAExecutionProvider'''
     provider = 'CUDAExecutionProvider'
+    device_type = 'cuda'
