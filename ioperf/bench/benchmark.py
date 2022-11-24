@@ -100,7 +100,7 @@ class Benchmark:
                 except KeyboardInterrupt:
                     raise
                 except Exception as ex:
-                    self.log(f"An {type(ex)} occurred {type(x).__name__} ")
+                    self.log(f"An occurred {type(x).__name__} ")
                     print(repr(ex))
                 try:
                     if self.run_connected:
@@ -120,7 +120,7 @@ class Benchmark:
                 except KeyboardInterrupt:
                     raise
                 except Exception as ex:
-                    self.log(f"An {type(ex)} occurred {type(x).__name__} ")
+                    self.log(f"An exception occurred {type(x).__name__} ")
                     print(repr(ex))
         with open(self.log_file, 'a') as f:
             print('done', file=f)
