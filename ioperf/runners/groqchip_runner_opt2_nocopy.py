@@ -59,7 +59,7 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
 
         self.inputs_out   = runtime.BufferArray(self.prog[2].entry_points[0].input, 1)
         self.outputs_out  = runtime.BufferArray(self.prog[2].entry_points[0].output, 1)
-    
+
     def assemble(self):
         status = subprocess.call(
             [
@@ -133,14 +133,14 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
 
         # [ONNX] DATA MOVER to TSP
         onnx_model, _ = tf2onnx.convert.from_function(
-            function=self.mkid('result_mover_in'), 
+            function=self.mkid('result_mover_in'),
             input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name="input_mover_in"),),
             output_path=self.onnxFileTo,
             opset=16,
         )
         # [ONNX] DATA MOVER from TSP
         onnx_model, _ = tf2onnx.convert.from_function(
-            function=self.mkid('result_mover_out'), 
+            function=self.mkid('result_mover_out'),
             input_signature=(tf.TensorSpec((14,self.ncells), self.dtype, name="input_mover_out"),),
             output_path=self.onnxFileFrom,
             opset=16,

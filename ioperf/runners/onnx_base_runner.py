@@ -47,11 +47,10 @@ class OnnxBaseRunner(BaseRunner):
             sess_options.execution_mode = ort.ExecutionMode.ORT_PARALLEL  # ORT_PARALLEL
         # opts.inter_op_num_threads = 0
         # opts.intra_op_num_threads = 0  #Inter op num threads (used only when parallel execution is enabled) is not affected by OpenMP settings and should always be set using the ORT APIs.
-        
+
         return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
-        
         args = { 'state':      ort.OrtValue.ortvalue_from_numpy(state.numpy(), device_type=self.device_type, device_id=0)}
 
         state_next =  ort.OrtValue.ortvalue_from_numpy(np.zeros_like(state.numpy()), device_type=self.device_type, device_id=0)
@@ -76,7 +75,6 @@ class OnnxBaseRunner(BaseRunner):
         self.io_binding.bind_input(name='gj_src',       device_type=args['gj_src'].device_name(), device_id=0, element_type=np.int32, shape=args['gj_src'].shape(), buffer_ptr=args['gj_src'].data_ptr())
         self.io_binding.bind_input(name='gj_tgt',       device_type=args['gj_tgt'].device_name(), device_id=0, element_type=np.int32, shape=args['gj_tgt'].shape(), buffer_ptr=args['gj_tgt'].data_ptr())
         self.io_binding.bind_input(name='g_gj',         device_type=args['g_gj'].device_name(), device_id=0, element_type=np.float32, shape=args['g_gj'].shape(), buffer_ptr=args['g_gj'].data_ptr())
-        
         self.io_binding.bind_input(name='state',       device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=args['state'].data_ptr())
         self.io_binding.bind_output(name='state_next', device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=state_next.data_ptr())    
 
@@ -84,7 +82,7 @@ class OnnxBaseRunner(BaseRunner):
         for k, v in kwargs:
             args[k] = ort.OrtValue.ortvalue_from_numpy(v)
             raise NotImplementedError()
-        args.update(kwargs)        
+        args.update(kwargs)
         return self._run(nms,state,state_next, args, probe)
 
     def _run(self, nms, state, state_next,args, probe):
@@ -92,7 +90,6 @@ class OnnxBaseRunner(BaseRunner):
             trace = []
             trace.append(state.numpy()[0, :])
         for _ in range(nms):
-        
         # # Old
         #     for _ in range(40):
         #         outputs = self.ort_session.run(None, args)
@@ -108,7 +105,6 @@ class OnnxBaseRunner(BaseRunner):
         # new!
             for i in range(20):
                 self.ort_session.run_with_iobinding(self.io_binding)
-                
                 self.io_binding.bind_input(name='state',       device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=state_next.data_ptr())
                 self.io_binding.bind_output(name='state_next', device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=args['state'].data_ptr())
 

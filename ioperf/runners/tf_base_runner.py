@@ -16,7 +16,6 @@ class TfBaseRunner(BaseRunner):
         return True
 
     def setup(self, *, ngj, ncells, argconfig):
-        
         tf_function = model.make_tf_function(ngj=ngj, ncells=ncells, argconfig=argconfig)
         if ngj == 0:
             @tf.function(jit_compile=True)

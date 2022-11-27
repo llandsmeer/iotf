@@ -84,13 +84,13 @@ class GroqchipRunnerOpt1(BaseRunner):
         dptr = shim.next_available_device()
         dptr.open()
         prog = runtime.IOProgram(self.iop_path)
-        dptr.load(prog[0]) 
+        dptr.load(prog[0])
 
         inputs = runtime.BufferArray(prog[0].entry_points[0].input, 1)
         outputs = runtime.BufferArray(prog[0].entry_points[0].output, 1)
 
         inputs_iodesc.tensors[0].from_host(state, inputs[0])
-   
+
         for _ in range(nms):
             for _ in range(40/2):
                 dptr.invoke(inputs[0],outputs[0])
@@ -102,7 +102,7 @@ class GroqchipRunnerOpt1(BaseRunner):
             return tf.constant(state), np.array(trace)
         else:
             return tf.constant(state)
-        
+
         dptr.close()
         print(data)
 
