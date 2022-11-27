@@ -79,7 +79,7 @@ def test_opt2_single_ms_connected():
     ns2, ot = t.run_with_gap_junctions(nms,m2.state, gj_src=m2.gj_src, gj_tgt=m2.gj_tgt,probe=True)
     
     if(np.allclose(ot,o) == False ):
-        print("groq chip")
+        print("groq chip opt2")
         print(o)
         print("cpu base")
         print(ot) 

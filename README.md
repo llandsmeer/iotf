@@ -8,6 +8,7 @@
  - `onnxruntime`
  - `onnxruntime-gpu` (optional) - to run on CUDA and TensorRT
  - Graphcore tensorflow SDK (optional) - to run on Graphcore
+ - GroqWare SDK (optional) - to run on Groq
  - `tf2onnx`
 
 ## Usage

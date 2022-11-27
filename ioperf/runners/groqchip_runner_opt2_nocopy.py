@@ -41,6 +41,25 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         self.compile()
         self.assemble()
 
+        #Groq Chip with presistent data
+        self.shim = groq.runtime.DriverShim()
+        self.dptr = self.shim.next_available_device()
+        self.dptr.open()
+        self.prog = runtime.IOProgram(self.iop_path)
+        self.dptr.load(self.prog[0])
+        self.dptr.load(self.prog[1], unsafe_keep_entry_points=True)
+        self.dptr.load(self.prog[2], unsafe_keep_entry_points=True)
+
+        # create all needed DMA buffers
+        self.inputs_in    = runtime.BufferArray(self.prog[0].entry_points[0].input, 1)
+        self.outputs_in   = runtime.BufferArray(self.prog[0].entry_points[0].output, 1)
+
+        self.inputs_comp  = runtime.BufferArray(self.prog[1].entry_points[0].input, 1)
+        self.outputs_comp = runtime.BufferArray(self.prog[1].entry_points[0].output, 1)
+
+        self.inputs_out   = runtime.BufferArray(self.prog[2].entry_points[0].input, 1)
+        self.outputs_out  = runtime.BufferArray(self.prog[2].entry_points[0].output, 1)
+    
     def assemble(self):
         status = subprocess.call(
             [
@@ -61,7 +80,7 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         )
         if status != 0:
             raise Exception("Assembler call failed")
-    
+
         status = subprocess.call(
             [
                 "aa-latest",
@@ -83,7 +102,7 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         )
         if status != 0:
             raise Exception("Assembler call failed")
-        
+
         status = subprocess.call(
             [
                 "aa-latest",
@@ -105,10 +124,13 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         )
         if status != 0:
             raise Exception("Assembler call failed")
-        
+
         print(f"[GroqAssembler] Finished {self.iop_path}")
 
     def compile(self):
+        # [ONNX] Data MOVER constants
+
+
         # [ONNX] DATA MOVER to TSP
         onnx_model, _ = tf2onnx.convert.from_function(
             function=self.mkid('result_mover_in'), 
@@ -145,7 +167,6 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
         print(self.aa_path)
         # with open(f"{self.aa_path}_compilerstats", "r") as f:
         #     self.compiler_stats = json.load(f)
-        
 
     # Helper function
     def mkid(self,name):
@@ -156,42 +177,22 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
         state  = np.array(state)
-        staten = np.zeros_like(state)
-
         if probe:
-            trace.append(state[0, :])
+            trace.append(state[0, :].copy())
 
-        #Groq Chip with presistent data
-        shim = groq.runtime.DriverShim()
-        dptr = shim.next_available_device()
-        dptr.open()
-        prog = runtime.IOProgram(self.iop_path)
-        dptr.load(prog[0])
-        dptr.load(prog[1], unsafe_keep_entry_points=True)
-        dptr.load(prog[2], unsafe_keep_entry_points=True)
-        
-        # create all needed DMA buffers
-        inputs_in   = runtime.BufferArray(prog[0].entry_points[0].input, 1)
-        outputs_in = runtime.BufferArray(prog[0].entry_points[0].output, 1)
-        
-        inputs_comp = runtime.BufferArray(prog[1].entry_points[2].input, 1)
-        outputs_comp = runtime.BufferArray(prog[1].entry_points[2].output, 1)
-
-        inputs_out   = runtime.BufferArray(prog[2].entry_points[0].input, 1)
-        outputs_out = runtime.BufferArray(prog[2].entry_points[0].output, 1)
-     
         # Move data to the chip
-        prog[0].entry_points[0].input.tensors[0].from_host(state, inputs_in[0])
-        dptr.invoke(inputs_in[0],outputs_in[0])
-        
+        self.prog[0].entry_points[0].input.tensors[0].from_host(state, self.inputs_in[0])
+        self.dptr.invoke(self.inputs_in[0],self.outputs_in[0])
+
         # Run compute and move data back if needed.
         for _ in range(nms):
             for _ in range(40):
-                dptr.invoke(inputs_comp[0],outputs_comp[0])
-            dptr.invoke(inputs_out[0],outputs_out[0])
-            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
+                self.dptr.invoke(self.inputs_comp[0],self.outputs_comp[0])
+            #get data out of chip!
+            self.dptr.invoke(self.inputs_out[0],self.outputs_out[0])
+            self.prog[2].entry_points[0].output.tensors[0].to_host(self.outputs_out[0],state)
             if probe:
-                trace.append(staten[0, :])
+                trace.append(state[0, :].copy())
 
         # Finished
         if probe:
@@ -202,54 +203,31 @@ class GroqchipRunnerOpt2NoCopy(BaseRunner):
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
         trace = []
         state  = np.array(state)
-        staten = np.zeros_like(state)
         gj_src = np.array(gj_src)
         gj_tgt = np.array(gj_tgt)
-        g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)        
+        g_gj   = np.array(g_gj,dtype=np.float32).reshape(1,1)
 
         if probe:
-            trace.append(state[0, :])
+            trace.append(state[0, :].copy())
 
-
-        #Groq Chip with presistent data
-        shim = groq.runtime.DriverShim()
-        dptr = shim.next_available_device()
-        dptr.open()
-        prog = runtime.IOProgram(self.iop_path)
-        dptr.load(prog[0])
-        dptr.load(prog[1], unsafe_keep_entry_points=True)
-        dptr.load(prog[2], unsafe_keep_entry_points=True)
-        
-        # create all needed DMA buffers
-        inputs_in   = runtime.BufferArray(prog[0].entry_points[0].input, 1)
-        outputs_in = runtime.BufferArray(prog[0].entry_points[0].output, 1)
-
-        inputs_comp_in = runtime.BufferArray(prog[1].entry_points[1].input, 1)
-        outputs_comp_in = runtime.BufferArray(prog[1].entry_points[1].output, 1)
-        
-        inputs_comp = runtime.BufferArray(prog[1].entry_points[2].input, 1)
-        outputs_comp = runtime.BufferArray(prog[1].entry_points[2].output, 1)
-        
-        inputs_out   = runtime.BufferArray(prog[2].entry_points[0].input, 1)
-        outputs_out = runtime.BufferArray(prog[2].entry_points[0].output, 1)
-     
         # Move data to the chip
-        prog[0].entry_points[0].input.tensors[0].from_host(state, inputs_in[0])
-        dptr.invoke(inputs_in[0],outputs_in[0])
-        prog[1].entry_points[1].input.tensors[0].from_host(gj_src, inputs_comp_in[0])
-        prog[1].entry_points[1].input.tensors[1].from_host(gj_tgt, inputs_comp_in[0])
-        prog[1].entry_points[1].input.tensors[2].from_host(g_gj, inputs_comp_in[0])
-        dptr.invoke(inputs_comp_in[0],outputs_comp_in[0])
+        self.prog[0].entry_points[0].input.tensors[0].from_host(state, self.inputs_in[0])
+        self.dptr.invoke(self.inputs_in[0],self.outputs_in[0])
 
-        
+        # FIXEN dit moet in de move data IOP!
+        self.prog[1].entry_points[0].input.tensors[0].from_host(gj_src, self.inputs_comp[0])
+        self.prog[1].entry_points[0].input.tensors[1].from_host(gj_tgt, self.inputs_comp[0])
+        self.prog[1].entry_points[0].input.tensors[2].from_host(g_gj,   self.inputs_comp[0])
+
         # Run compute and move data back if needed.
         for _ in range(nms):
             for _ in range(40):
-                dptr.invoke(inputs_comp[0],outputs_comp[0])
-            dptr.invoke(inputs_out[0],outputs_out[0])
-            prog[2].entry_points[0].output.tensors[0].to_host(outputs_out[0],staten)
+                self.dptr.invoke(self.inputs_comp[0],self.outputs_comp[0])
+            #move data back to the cpu
+            self.dptr.invoke(self.inputs_out[0],self.outputs_out[0])
+            self.prog[2].entry_points[0].output.tensors[0].to_host(self.outputs_out[0],state)
             if probe:
-                trace.append(staten[0, :])
+                trace.append(state[0, :].copy())
 
         # Finished
         if probe:
