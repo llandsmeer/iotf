@@ -3,6 +3,7 @@ import io
 import subprocess
 import base64
 import numpy as np
+import matplotlib.pyplot as plt
 
 from ..runners import runners
 from .model_configuration import ModelConfiguration
@@ -34,7 +35,9 @@ class Benchmark:
         self.n_ms = 100
         self.n_rep = 5
         self.n_probe = 10000
+        self.plot = False
         self.log_file = log_file
+        self.spike_probe = True
 
     def log(self, *args):
         raw = ' '.join(map(str, args))
@@ -80,8 +83,75 @@ class Benchmark:
             else:
                 self.log(f'runner unsupported {type(x).__name__}')
         self.write_hwinfo()
+
+        if self.spike_probe:
+            for runner in supported_runners:
+                a = time.perf_counter()
+                config = self.model_configs[0]
+                print('cells', config.ncells)
+                runner.setup(
+                        ncells=config.ncells,
+                        ngj=config.ngj,
+                        argconfig=dict(
+                            I_app='VARY',
+                            g_CaL='VARY',
+                            )
+                        )
+                state = config.state
+                np.random.seed(self.seed // 1)
+                I_app = np.zeros(config.ncells, dtype='float32')
+                g_CaL = np.array(0.5+0.9*np.random.random(config.ncells), dtype='float32')
+                traces = []
+                # 5 seconds of transients to cool down the sim
+                state, trace = runner.run_with_gap_junctions(
+                        5000,
+                        state,
+                        gj_src=config.gj_src,
+                        gj_tgt=config.gj_tgt,
+                        g_gj=0.05,
+                        I_app=I_app,
+                        g_CaL=g_CaL,
+                        probe=True,
+                        )
+                traces.append(trace)
+                for _ in range(10):
+                    # apply a short 50ms pulse current every second
+                    idx = np.random.choice(config.ncells, len(I_app)//3)
+                    I_app[idx] = np.random.normal(10, 3, len(idx))
+                    state, trace = runner.run_with_gap_junctions(
+                            50,
+                            state,
+                            gj_src=config.gj_src,
+                            gj_tgt=config.gj_tgt,
+                            g_gj=0.05,
+                            I_app=I_app,
+                            g_CaL=g_CaL,
+                            probe=True,
+                            )
+                    I_app *= 0
+                    traces.append(trace[1:])
+                    state, trace = runner.run_with_gap_junctions(
+                            1000-50,
+                            state,
+                            gj_src=config.gj_src,
+                            gj_tgt=config.gj_tgt,
+                            g_gj=0.05,
+                            I_app=I_app,
+                            g_CaL=g_CaL,
+                            probe=True,
+                            )
+                    traces.append(trace[1:])
+                trace = np.vstack(traces)
+                b = time.perf_counter()
+                self.register('run_spikes_probe', a, b, config, runner, trace)
+                if self.plot:
+                    plt.title(f'run spikes {type(runner).__name__}')
+                    plt.plot(trace)
+                    plt.show()
+
         for config in self.model_configs:
             for runner in supported_runners:
+                runner.setup_using_model_config(config, gap_junctions=True)
                 try:
                     if self.run_unconnected:
                         a = time.perf_counter()
@@ -97,7 +167,11 @@ class Benchmark:
                             a = time.perf_counter()
                             _, trace = runner.run_unconnected(self.n_probe, config.state, probe=True)
                             b = time.perf_counter()
-                        self.register('run_unconnected_probe', a, b, config, runner, trace)
+                            self.register('run_unconnected_probe', a, b, config, runner, trace)
+                            if self.plot:
+                                plt.title(f'run unconnected {type(runner).__name__}')
+                                plt.plot(trace)
+                                plt.show()
                 except KeyboardInterrupt:
                     raise
                 except Exception as ex:
@@ -118,7 +192,11 @@ class Benchmark:
                             a = time.perf_counter()
                             _, trace = runner.run_with_gap_junctions(self.n_probe, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt, probe=True)
                             b = time.perf_counter()
-                        self.register('run_connected_probe', a, b, config, runner, trace)
+                            self.register('run_connected_probe', a, b, config, runner, trace)
+                            if self.plot:
+                                plt.title(f'run connected {type(runner).__name__}')
+                                plt.plot(trace)
+                                plt.show()
                 except KeyboardInterrupt:
                     raise
                 except Exception as ex:

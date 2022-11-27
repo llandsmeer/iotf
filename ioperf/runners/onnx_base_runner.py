@@ -57,9 +57,17 @@ class OnnxBaseRunner(BaseRunner):
         self.io_binding.bind_input(name='state',       device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=args['state'].data_ptr())
         self.io_binding.bind_output(name='state_next', device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=state_next.data_ptr())    
 
-        for k, v in kwargs:
+        for k, v in kwargs.items():
+            v = np.array(v)
             args[k] = ort.OrtValue.ortvalue_from_numpy(v)
-            raise NotImplementedError()
+            self.io_binding.bind_input(
+                    name=k,
+                    device_type=args[k].device_name(),
+                    device_id=0,
+                    element_type=v.dtype,
+                    shape=args[k].shape(),
+                    buffer_ptr=state_next.data_ptr()
+                    )
         args.update(kwargs)
         return self._run(nms,state,state_next, args, probe)
 
@@ -72,16 +80,23 @@ class OnnxBaseRunner(BaseRunner):
         }
         state_next =  ort.OrtValue.ortvalue_from_numpy(np.zeros_like(state.numpy()), device_type=self.device_type, device_id=0)
 
-        self.io_binding.bind_input(name='gj_src',       device_type=args['gj_src'].device_name(), device_id=0, element_type=np.int32, shape=args['gj_src'].shape(), buffer_ptr=args['gj_src'].data_ptr())
-        self.io_binding.bind_input(name='gj_tgt',       device_type=args['gj_tgt'].device_name(), device_id=0, element_type=np.int32, shape=args['gj_tgt'].shape(), buffer_ptr=args['gj_tgt'].data_ptr())
-        self.io_binding.bind_input(name='g_gj',         device_type=args['g_gj'].device_name(), device_id=0, element_type=np.float32, shape=args['g_gj'].shape(), buffer_ptr=args['g_gj'].data_ptr())
-        self.io_binding.bind_input(name='state',       device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=args['state'].data_ptr())
-        self.io_binding.bind_output(name='state_next', device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=state_next.data_ptr())    
+        self.io_binding.bind_input(name='gj_src',       device_type=args['gj_src'].device_name(), device_id=0, element_type=np.int32,   shape=args['gj_src'].shape(), buffer_ptr=args['gj_src'].data_ptr())
+        self.io_binding.bind_input(name='gj_tgt',       device_type=args['gj_tgt'].device_name(), device_id=0, element_type=np.int32,   shape=args['gj_tgt'].shape(), buffer_ptr=args['gj_tgt'].data_ptr())
+        self.io_binding.bind_input(name='g_gj',         device_type=args['g_gj'].device_name(),   device_id=0, element_type=np.float32, shape=args['g_gj'].shape(),   buffer_ptr=args['g_gj'].data_ptr())
+        self.io_binding.bind_input(name='state',        device_type=args['state'].device_name(),  device_id=0, element_type=np.float32, shape=args['state'].shape(),  buffer_ptr=args['state'].data_ptr())
+        self.io_binding.bind_output(name='state_next',  device_type=args['state'].device_name(),  device_id=0, element_type=np.float32, shape=args['state'].shape(),  buffer_ptr=state_next.data_ptr())
 
-
-        for k, v in kwargs:
+        for k, v in kwargs.items():
+            v = np.array(v)
             args[k] = ort.OrtValue.ortvalue_from_numpy(v)
-            raise NotImplementedError()
+            self.io_binding.bind_input(
+                    name=k,
+                    device_type=args[k].device_name(),
+                    device_id=0,
+                    element_type=v.dtype,
+                    shape=args[k].shape(),
+                    buffer_ptr=args[k].data_ptr()
+                    )
         args.update(kwargs)
         return self._run(nms,state,state_next, args, probe)
 
@@ -120,6 +135,6 @@ class OnnxBaseRunner(BaseRunner):
             self.io_binding.bind_output(name='state_next', device_type=args['state'].device_name(), device_id=0, element_type=np.float32, shape=args['state'].shape(), buffer_ptr=state_next.data_ptr())    
 
         if probe:
-            return tf.constant(state_next_cpu), np.array(trace)
+            return tf.constant(state_next_cpu[0]), np.array(trace)
         else:
             return tf.constant(state_next_cpu)
