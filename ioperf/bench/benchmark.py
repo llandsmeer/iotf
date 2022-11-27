@@ -27,7 +27,7 @@ class bcolors:
 
 class Benchmark:
     def __init__(self, log_file):
-        self.base_powers = 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+        self.base_powers = 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 40, 50, 60, 70, 80, 90, 100
         self.seed = 42
         self.run_connected = True
         self.run_unconnected = True
