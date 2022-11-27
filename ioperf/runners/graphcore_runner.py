@@ -20,8 +20,9 @@ class GraphcoreRunner(BaseRunner):
         from tensorflow.python import ipu
         config = ipu.config.IPUConfig()
         config.auto_select_ipus = 2
-        config.configure_ipu_system()
         config.optimizations.math.fast = True
+        config.optimizations.enable_gather_simplifier = True
+        config.configure_ipu_system()
         self.strategy = ipu.ipu_strategy.IPUStrategy()
         with self.strategy.scope():
             timestep = model.make_tf_function(ngj=ngj, ncells=ncells, argconfig=argconfig)
@@ -60,7 +61,7 @@ class GraphcoreRunner(BaseRunner):
             trace = []
             trace.append(state[0,:].numpy())
             for _ in range(nms):
-                state = self.strategy.run(self.step40, (state, gj_src, gj_tgt, gj_gj))
+                state = self.strategy.run(self.step40, (state, gj_src, gj_tgt, g_gj))
                 if probe:
                     trace.append(state[0,:].numpy())
         if probe:
