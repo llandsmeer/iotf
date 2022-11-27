@@ -88,7 +88,6 @@ class Benchmark:
             for runner in supported_runners:
                 a = time.perf_counter()
                 config = self.model_configs[0]
-                print('cells', config.ncells)
                 runner.setup(
                         ncells=config.ncells,
                         ngj=config.ngj,

@@ -62,6 +62,9 @@ class IPU_Module_Shim:
         def scope(self):
             return self
 
+        def run(self, f, args):
+            return f(*args)
+
         def __enter__(self):
             pass
 
