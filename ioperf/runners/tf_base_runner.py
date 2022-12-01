@@ -8,6 +8,14 @@ from .base_runner import BaseRunner
 
 __all__ = ['TfBaseRunner']
 
+STEP40_TEMPLATE = '''
+@tf.function(jit_compile=True)
+def f(state {args}):
+    for _ in range(40):
+        state = tf_function(state {kwargs})['state_next']
+    return state
+'''
+
 class TfBaseRunner(BaseRunner):
     '''
     Base TF implementation.
@@ -17,27 +25,27 @@ class TfBaseRunner(BaseRunner):
 
     def setup(self, *, ngj, ncells, argconfig):
         tf_function = model.make_tf_function(ngj=ngj, ncells=ncells, argconfig=argconfig)
-        if ngj == 0:
-            @tf.function(jit_compile=True)
-            def f(state):
-                for _ in range(40):
-                    state = tf_function(state)['state_next']
-                return state
-            self.f = f
-        else:
-            @tf.function(jit_compile=True)
-            def f(state, gj_src, gj_tgt, g_gj):
-                for _ in range(40):
-                    state = tf_function(state, gj_src, gj_tgt, g_gj)['state_next']
-                return state
-            self.f = f
+        args = list(argconfig.keys())
+        if ngj != 0:
+            args = ['gj_src', 'gj_tgt', 'g_gj'] + args
+        prefix = ', ' if args else ''
+        src = STEP40_TEMPLATE.format(
+                args=prefix + ', '.join(args),
+                kwargs=prefix + ', '.join(f'{k}={k}' for k in args)
+                )
+        env = dict(
+            tf=tf,
+            tf_function=tf_function
+        )
+        exec(src, env)
+        self.f = env['f']
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
         if probe:
             trace.append(state.numpy()[0, :])
         for _ in range(nms):
-            state = self.f(state)
+            state = self.f(state, **kwargs)
             if probe:
                 trace.append(state.numpy()[0, :])
         if probe:
@@ -50,7 +58,7 @@ class TfBaseRunner(BaseRunner):
         if probe:
             trace.append(state.numpy()[0, :])
         for _ in range(nms):
-            state = self.f(state, gj_src, gj_tgt, g_gj)
+            state = self.f(state, gj_src, gj_tgt, g_gj, **kwargs)
             if probe:
                 trace.append(state.numpy()[0, :])
         if probe:
