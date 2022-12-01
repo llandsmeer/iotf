@@ -28,7 +28,7 @@ def measurement_loop(runner, exe, log_file):
             for line in res.splitlines():
                 print(runner, i, f'{b - a:10.5f}', line, file=f)
         i += 1
-        time.sleep(1)
+        time.sleep(0.1)
 
 
 class EnergyBenchmark:
@@ -37,7 +37,7 @@ class EnergyBenchmark:
         self.runners = [
             (runners.GraphcoreRunner,    'gc-monitor'),
             (runners.GroqchipRunner,     'tsp-ctl monitor'),
-            (runners.tf_base_runner,     'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
+            (runners.TfBaseRunner,       'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
             # (runners.TfBaseRunner,       'cat /sys/class/power_supply/BAT0/uevent'), (LAPTOP)
             (runners.OnnxCUDARunner,     'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
             (runners.OnnxTensorRTRunner, 'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
@@ -67,7 +67,7 @@ class EnergyBenchmark:
             runner.run_with_gap_junctions(1000, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
             t = mp.Process(target=measurement_loop, args=(type(runner).__name__, exe, self.log_file))
             t.start()
-            runner.run_with_gap_junctions(10000, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
+            runner.run_with_gap_junctions(100000, config.state, gj_src=config.gj_src, gj_tgt=config.gj_tgt)
             t.terminate()
             t.join()
 
