@@ -51,6 +51,7 @@ class OnnxBaseRunner(BaseRunner):
         return ort.InferenceSession(self.onnx_path, sess_options, providers=[self.provider])
 
     def run_unconnected(self, nms, state, probe=False, **kwargs):
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
         args = { 'state':      ort.OrtValue.ortvalue_from_numpy(state.numpy(), device_type=self.device_type, device_id=0)}
 
         state_next =  ort.OrtValue.ortvalue_from_numpy(np.zeros_like(state.numpy()), device_type=self.device_type, device_id=0)
@@ -72,6 +73,7 @@ class OnnxBaseRunner(BaseRunner):
         return self._run(nms,state,state_next, args, probe)
 
     def run_with_gap_junctions(self, nms, state, gj_src, gj_tgt, g_gj=0.05, probe=False, **kwargs):
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
         args = {
             'state': ort.OrtValue.ortvalue_from_numpy(state.numpy() ), #, device_type=self.device_type, device_id=0),
             'gj_src': ort.OrtValue.ortvalue_from_numpy(gj_src.numpy() ), #, device_type=self.device_type, device_id=0),

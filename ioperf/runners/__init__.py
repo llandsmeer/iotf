@@ -33,13 +33,14 @@ __all__ = [
 ]
 
 runners = [
-    # GroqchipRunner,
+    GroqchipRunner,
+    GroqchipRunnerOpt1,
     # GroqchipRunnerOpt2NoCopy,
     # GraphcoreRunner,
     # OnnxCpuRunner,
     # OnnxCpuRunnerMt,
     # TfBaseRunner,
-    TfTpuRunner
+    # TfTpuRunner
     # OnnxCUDARunner,
     # OnnxTensorRTRunner
 ]

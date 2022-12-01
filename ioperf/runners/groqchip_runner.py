@@ -56,11 +56,12 @@ class GroqchipRunner(BaseRunner):
             raise Exception("Assembler call failed")
 
     def compile(self):
-        print("[GroqCompiler] Starting Groq compiler")
+        print(f"[GroqCompiler] Starting Groq compiler input onnx {self.onnx_path}")
         status = subprocess.call(
             [
             "groq-compiler",
             f"-save-stats={self.aa_path}_compilerstats",
+            "--groqview",
             "-o",
             self.aa_path,
             self.onnx_path,
