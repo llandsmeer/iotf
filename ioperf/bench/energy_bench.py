@@ -36,11 +36,12 @@ class EnergyBenchmark:
         self.config = ModelConfiguration.create_new(nneurons=9**3, seed=1234)
         self.runners = [
             (runners.GraphcoreRunner,    'gc-monitor'),
-            (runners.tf_base_runner,     'nvidia-smi'),
-            #(runners.TfBaseRunner,       'cat /sys/class/power_supply/BAT0/uevent'),
-            (runners.OnnxCUDARunner,     'nvidia-smi'),
-            (runners.OnnxTensorRTRunner, 'nvidia-smi'),
-            (runners.OnnxTensorRTRunner, 'nvidia-smi'),
+            (runners.GroqchipRunner,     'tsp-ctl monitor'),
+            (runners.tf_base_runner,     'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
+            # (runners.TfBaseRunner,       'cat /sys/class/power_supply/BAT0/uevent'), (LAPTOP)
+            (runners.OnnxCUDARunner,     'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
+            (runners.OnnxTensorRTRunner, 'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
+            (runners.OnnxTensorRTRunner, 'nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits --id=0'),
         ]
         self.log_file = log_file
         self.hostname = subprocess.getoutput('hostname').strip()
@@ -58,7 +59,7 @@ class EnergyBenchmark:
             if not runner.is_supported():
                 self.log('unsupported', type(runner).__name__)
                 continue
-            if os.system(f'which {exe}') != 0:
+            if os.system(f'which {exe.split()[0]}') != 0:
                 self.log('unsupported', type(runner).__name__, 'not-found:', exe)
             self.log('energy', config)
             runner.setup_using_model_config(config, gap_junctions=True)
