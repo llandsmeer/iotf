@@ -36,6 +36,7 @@ class GroqchipRunner(BaseRunner):
         self.compiler_stats = {}
         self.compile()
         self.assemble()
+        self.program = tsp.create_tsp_runner(self.iop_path)
 
     def assemble(self):
         print(f"[groqAssembler] Starting Groq compiler {self.iop_path}")
@@ -72,6 +73,7 @@ class GroqchipRunner(BaseRunner):
         with open(f"{self.aa_path}_compilerstats", "r") as f:
             self.compiler_stats = json.load(f)
 
+
     def run_unconnected(self, nms, state, probe=False, **kwargs):
         trace = []
         state = state.numpy()
@@ -79,11 +81,11 @@ class GroqchipRunner(BaseRunner):
         if probe:
             trace.append(state[0, :])
 
-        program = tsp.create_tsp_runner(self.iop_path)
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
 
         for _ in range(nms):
             for _ in range(40):
-                state = program(state=state)["state_next"]
+                state = self.program(state=state, **kwargs)["state_next"]
             if probe:
                 trace.append(state[0, :])
 
@@ -98,14 +100,14 @@ class GroqchipRunner(BaseRunner):
         gj_src = gj_src.numpy()
         gj_tgt = gj_tgt.numpy()
         g_gj = np.array(g_gj,dtype=np.float32).reshape(1,1)
+        kwargs = {k.lower(): v for k, v in kwargs.items()}
 
         if probe:
             trace.append(state[0, :])
 
-        program = tsp.create_tsp_runner(self.iop_path)
         for _ in range(nms):
             for _ in range(40):
-                state = program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj)["state_next"]
+                state = self.program(state=state,gj_src=gj_src,gj_tgt=gj_tgt,g_gj=g_gj,**kwargs)["state_next"]
             if probe:
                 trace.append(state[0, :])
 

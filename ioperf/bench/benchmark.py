@@ -86,6 +86,8 @@ class Benchmark:
 
         if self.spike_probe:
             for runner in supported_runners:
+                if(runner == "GroqchipRunnerOpt2NoCopy"):
+                    continue
                 a = time.perf_counter()
                 config = self.model_configs[0]
                 runner.setup(
