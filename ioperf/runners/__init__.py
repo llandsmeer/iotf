@@ -14,6 +14,7 @@ from .onnx_cpu_runner_mt import OnnxCpuRunnerMt
 from .onnx_cuda_runner import OnnxCUDARunner
 from .onnx_tensorrt_runner import OnnxTensorRTRunner
 from .tf_base_runner import TfBaseRunner
+from .tf_tpu_runner import TfTpuRunner
 
 __all__ = [
     'BaseRunner',
@@ -27,18 +28,20 @@ __all__ = [
     'OnnxCUDARunner',
     'OnnxTensorRTRunner',
     'TfBaseRunner',
+    'TfTpuRunner',
     'runners'
 ]
 
 runners = [
-    GroqchipRunner,
-    GroqchipRunnerOpt2NoCopy,
-    GraphcoreRunner,
-    OnnxCpuRunner,
+    # GroqchipRunner,
+    # GroqchipRunnerOpt2NoCopy,
+    # GraphcoreRunner,
+    # OnnxCpuRunner,
     # OnnxCpuRunnerMt,
-    TfBaseRunner,
-    OnnxCUDARunner,
-    OnnxTensorRTRunner
+    # TfBaseRunner,
+    TfTpuRunner
+    # OnnxCUDARunner,
+    # OnnxTensorRTRunner
 ]
 '''
 Available runners with implementation
