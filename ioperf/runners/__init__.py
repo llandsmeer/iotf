@@ -5,6 +5,7 @@ implementations. Runners are expected to implement the BaseRunner class.
 
 from .base_runner import BaseRunner
 from .graphcore_runner import GraphcoreRunner
+from .graphcore_streaming_runner import GraphcoreStreamingRunner
 from .groqchip_runner import GroqchipRunner
 from .groqchip_runner_opt1 import GroqchipRunnerOpt1
 from .groqchip_runner_opt2_nocopy import GroqchipRunnerOpt2NoCopy
@@ -21,6 +22,7 @@ __all__ = [
     'GroqchipRunnerOpt1',
     'GroqchipRunnerOpt2NoCopy',
     'GraphcoreRunner',
+    'GraphcoreStreamingRunner',
     'OnnxBaseRunner',
     'OnnxCpuRunner',
     'OnnxCpuRunnerMt',
@@ -34,6 +36,7 @@ runners = [
     GroqchipRunner,
     GroqchipRunnerOpt2NoCopy,
     GraphcoreRunner,
+    GraphcoreStreamingRunner,
     OnnxCpuRunner,
     # OnnxCpuRunnerMt,
     TfBaseRunner,
