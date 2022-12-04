@@ -3,12 +3,13 @@ import numpy as np
 
 from ...bench.model_configuration import ModelConfiguration
 from .. import GroqchipRunner
+from .. import GroqchipRunnerOpt1
 from .. import GroqchipRunnerOpt2NoCopy
 from .. import OnnxCpuRunner
 
 def test_single_ms_unconnected():
     t = OnnxCpuRunner()
-    x = GroqchipRunner()
+    x = GroqchipRunnerOpt1()
 
     m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
     m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
@@ -18,14 +19,14 @@ def test_single_ms_unconnected():
 
     t.setup_using_model_config(m2, gap_junctions=False)
     ns2, ot = t.run_unconnected(1, m2.state,probe=True)
-    
+
     if(np.allclose(ot,o) == False ):
         raise Exception("Sorry, outcome is not close enough to cpu baseline")
-    
+
 
 def test_single_ms_connected():
     t = OnnxCpuRunner()
-    x = GroqchipRunner()
+    x = GroqchipRunnerOpt1()
 
     m1 = ModelConfiguration.create_new(nneurons=64,seed=40)
     m2 = ModelConfiguration.create_new(nneurons=64,seed=40)
