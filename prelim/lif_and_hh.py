@@ -67,16 +67,16 @@ def lif_timeit(ncells):
     spike_tgt_asym = spike_tgt[:len(spike_tgt)//2]
     state = lif_make_initial(ncells)
     lif40 = lif_make_timestep40(ncells, len(spike_src_asym))
-    burn_in = 10
+    burn_in = 50
     args = (
         tf.constant(50, dtype=tf.float32),
-        tf.constant(0.025, dtype=tf.float32),
-        tf.constant(10, dtype=tf.float32),
-        tf.constant(4, dtype=tf.float32),
-        tf.constant(3, dtype=tf.float32),
+        tf.constant(0.025, dtype=tf.float32), # delta
+        tf.constant(5, dtype=tf.float32), # tau
+        tf.constant(3, dtype=tf.float32), # tau
+        tf.constant(.3, dtype=tf.float32), # iint
         spike_src_asym,
         spike_tgt_asym,
-        tf.constant(0.5, dtype=tf.float32)
+        tf.constant(0.05, dtype=tf.float32) # wint
         )
     for i in range(burn_in):
         state_next = lif40(state, *args)
@@ -93,6 +93,7 @@ def lif_timeit(ncells):
     elapsed = b - a
     print('>'*10, 'firing frequency', f)
     print('>'*10, 'seconds/second', elapsed)
+    return elapsed
 
 # timeit(8**3)
 
@@ -206,7 +207,7 @@ def hh_timeit(ncells):
     state = hh_make_initial(ncells)
     print(state.shape, spike_src_asym.shape)
     hh40 = hh_make_timestep40(ncells, len(spike_src_asym))
-    burn_in = 10
+    burn_in = 50
     vs = []
     args = dict(
             #CONSTANT: V_th=tf.constant(-10, dtype=tf.float32), delta=tf.constant(0.025, dtype=tf.float32),
@@ -242,6 +243,7 @@ def hh_timeit(ncells):
     #plt.plot(np.array(vs))
     #print(vs[-1])
     #plt.show()
+    return elapsed
 
 def io_timeit(ncells):
     src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
@@ -249,7 +251,7 @@ def io_timeit(ncells):
     print(state.shape, src.shape)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
     timestep40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
-    burn_in = 10
+    burn_in = 50
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
     for i in range(burn_in):
@@ -261,8 +263,17 @@ def io_timeit(ncells):
     b = time.perf_counter()
     elapsed = b - a
     print('>'*10, 'seconds/second', elapsed)
+    return elapsed
 
-lif_timeit(6**3)
-hh_timeit(6**3) # 18 Hz
-io_timeit(6**3)
-# STATE PASSTHROUGHT
+out = []
+with tf.device('/GPU:1'):
+    for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
+        print(n)
+        a = lif_timeit(n)
+        b = hh_timeit(n) # 18 Hz
+        c = io_timeit(n)
+        row = [n, a, b, c]
+        print(row)
+        out.append(row)
+out = np.array(out)
+print(out)
