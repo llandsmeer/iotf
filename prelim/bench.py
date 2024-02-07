@@ -1,5 +1,6 @@
 import sys
 sys.path.append('..')
+import tempfile
 import subprocess
 import json
 import socket
@@ -113,19 +114,19 @@ def lif_timeit(ncells):
 # timeit(8**3)
 
 
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def exprelr(x): return x / (tf.exp(x)-1)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def alpha_m(V): return exprelr(-0.1*V - 4.0)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def alpha_h(V): return 0.07*tf.exp(-0.05*V - 3.25)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def alpha_n(V): return 0.1*exprelr(-0.1*V - 5.5)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def beta_m(V): return 4.0*tf.exp(-(V + 65.0)/18.0)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def beta_h(V): return 1.0/(tf.exp(-0.1*V - 3.5) + 1.0)
-@tf.function(jit_compile=True)
+#@tf.function(jit_compile=True)
 def beta_n(V): return 0.125*tf.exp(-0.0125*V - 0.8125)
 def hh_make_initial(ncells):
     V = tf.constant(np.random.normal(-60, 3, ncells))
@@ -135,7 +136,7 @@ def hh_make_initial(ncells):
     return tf.constant([
         V.numpy().tolist(), m.tolist(), h.tolist(), n.tolist(), [0]*ncells
         ], dtype=tf.float32)
-def hh_make_timestep40(ncells, nconns):
+def hh_make_timestep40(ncells, nconns, compile=True):
     argspec =[tf.TensorSpec((HH_NUM_STATE_VARS, ncells), tf.float32, name='state'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='V_th'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='delta'),
@@ -152,7 +153,7 @@ def hh_make_timestep40(ncells, nconns):
               tf.TensorSpec((nconns,), tf.int32, name='spike_tgt'),
               tf.TensorSpec((), tf.float32, name='spike_w'),
               ]
-    @tf.function(input_signature=argspec, jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=compile)
     def timestep(
             state,
             iint               = 0.0,
@@ -202,7 +203,7 @@ def hh_make_timestep40(ncells, nconns):
             Isyn_next
             ], axis=0)
         return {"state_next": state_next} #, 'S': tf.math.count_nonzero(spike_flag)}
-    @tf.function(input_signature=argspec, jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=compile)
     def timestep40(state,
                    #CONSTANT: V_th, delta, g_na, g_k, g_leak, E_na, E_k, E_leak, S, tau_syn,
                    iint, spike_src, spike_tgt, spike_w):
@@ -214,6 +215,7 @@ def hh_make_timestep40(ncells, nconns):
             state = out['state_next']
             # spike_count = spike_count + out['S']
         return {"state_next": state}#, 'S': spike_count}
+    timestep40.argspec = argspec
     return timestep40
 def hh_timeit(ncells):
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
@@ -282,32 +284,34 @@ def io_timeit(ncells):
     return elapsed
 
 def hh_timeit_groq(ncells):
+    import tf2onnx
     from groq.runner import tsp
     from groq.runtime import driver as runtime
     import groq.runtime
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
     spike_src_asym = spike_src[:len(spike_src)//2]
     spike_tgt_asym = spike_tgt[:len(spike_tgt)//2]
-    state = hh_make_initial(ncells)
+    state = hh_make_initial(ncells).numpy()
     print(state.shape, spike_src_asym.shape)
     path = tempfile.mktemp() + '.onnx'
-    hh40 = hh_make_timestep40(ncells, len(spike_src_asym))
+    print('PATH', path)
+    hh40 = hh_make_timestep40(ncells, len(spike_src_asym), compile=False)
     onnx_model, _ = tf2onnx.convert.from_function(
-            function=tf_function,
-            input_signature=tf_function.argspec,
+            function=hh40,
+            input_signature=hh40.argspec,
             output_path=path,
             opset=16,
             )
-    subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}.aa', path])
-    subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', 'i', f'{path}.aa', '--output-iop', f'{path}.iop'])
+    subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}', path])
+    subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', '-i', f'{path}.aa', '--output-iop', f'{path}.iop'])
     program = tsp.create_tsp_runner(f'{path}.iop')
-    args = dict(spike_src          = spike_src_asym, spike_tgt          = spike_tgt_asym, spike_w            = np.array(0.05, dtype=tf.float32))
+    args = dict(spike_src=spike_src_asym.numpy(), spike_tgt=spike_tgt_asym.numpy(), spike_w=np.array(0.05, dtype=np.float32))
     ms = 1000
-    iints = [np.random.random(ncells)**5*10 for _ in range(ms)]
+    iints = [np.random.random(ncells).astype(np.float32)**5*10 for _ in range(ms)]
     a = time.perf_counter()
     for i in range(ms):
         args['iint'] = iints[i]
-        state_next = program(state, **args)
+        state_next = program(state=state, **args)
         state = state_next['state_next']
     b = time.perf_counter()
     elapsed = b - a
@@ -348,10 +352,9 @@ elif mode == 'cpu':
             log(n=n, lif=a, hh=b, io=c)
 elif mode == 'groq':
     out = []
-    with tf.device('/CPU:0'):
-        for n in ns:
-            print(n)
-            #a = lif_timeit(n)
-            groqhh = hh_timeit_groq(n) # 18 Hz
-            #c = io_timeit(n)
-            log(n=n, lif=0, hh=groqhh, io=0)
+    for n in ns:
+        print(n)
+        #a = lif_timeit(n)
+        groqhh = hh_timeit_groq(n)
+        #c = io_timeit(n)
+        log(n=n, lif=0, hh=groqhh, io=0)
