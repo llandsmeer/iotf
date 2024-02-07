@@ -16,11 +16,11 @@ def lif_make_initial(ncells, V=None):
         ], dtype=tf.float32)
 def lif_make_timestep40(ncells, nconns):
     argspec =[tf.TensorSpec((LIF_NUM_STATE_VARS, ncells), tf.float32, name='state'),
-              tf.TensorSpec((), tf.float32, name='V_th'),
-              tf.TensorSpec((), tf.float32, name='delta'),
-              tf.TensorSpec((), tf.float32, name='tau_syn'),
-              tf.TensorSpec((), tf.float32, name='tau_mem'),
-              tf.TensorSpec((), tf.float32, name='iint'),
+              #CONSTANT: tf.TensorSpec((), tf.float32, name='V_th'),
+              #CONSTANT: tf.TensorSpec((), tf.float32, name='delta'),
+              #CONSTANT: tf.TensorSpec((), tf.float32, name='tau_syn'),
+              #CONSTANT: tf.TensorSpec((), tf.float32, name='tau_mem'),
+              #CONSTANT: tf.TensorSpec((), tf.float32, name='iint'),
               tf.TensorSpec((nconns,), tf.int32, name='spike_src'),
               tf.TensorSpec((nconns,), tf.int32, name='spike_tgt'),
               tf.TensorSpec((), tf.float32, name='spike_w'),
@@ -30,9 +30,9 @@ def lif_make_timestep40(ncells, nconns):
             state,
             V_th               = 50,
             delta              = 0.025,
-            tau_syn            = 4.,
-            tau_mem            = 20.,
-            iint               = 0.0,
+            tau_syn            = 10.,
+            tau_mem            = 4.,
+            iint               = 3.0,
             spike_src          = None,
             spike_tgt          = None,
             spike_w            = 0.05,
@@ -53,10 +53,14 @@ def lif_make_timestep40(ncells, nconns):
         state_next = tf.stack([V_next, Isyn_next], axis=0)
         return {"state_next": state_next, 'S': tf.math.count_nonzero(S)}
     @tf.function(jit_compile=True)
-    def timestep40(state, V_th, delta, tau_syn, tau_mem, iint, spike_src, spike_tgt, spike_w):
+    def timestep40(state,
+                   #CONSTANT: V_th, delta, tau_syn, tau_mem, iint,
+                   spike_src, spike_tgt, spike_w):
         S = 0
         for _ in range(40):
-            out = timestep(state, V_th=V_th, delta=delta, tau_syn=tau_syn, tau_mem=tau_mem, iint=iint, spike_src=spike_src, spike_tgt=spike_tgt, spike_w=spike_w)
+            out = timestep(state,
+                           #CONSTANT: V_th=V_th, delta=delta, tau_syn=tau_syn, tau_mem=tau_mem, iint=iint,
+                           spike_src=spike_src, spike_tgt=spike_tgt, spike_w=spike_w)
             state = out['state_next']
             S = S + out['S']
         return {"state_next": state, 'S': S}
@@ -69,11 +73,11 @@ def lif_timeit(ncells):
     lif40 = lif_make_timestep40(ncells, len(spike_src_asym))
     burn_in = 10
     args = (
-        tf.constant(50, dtype=tf.float32),
-        tf.constant(0.025, dtype=tf.float32),
-        tf.constant(10, dtype=tf.float32),
-        tf.constant(4, dtype=tf.float32),
-        tf.constant(3, dtype=tf.float32),
+        #CONSTANT: tf.constant(50, dtype=tf.float32),
+        #CONSTANT: tf.constant(0.025, dtype=tf.float32),
+        #CONSTANT: tf.constant(10, dtype=tf.float32),
+        #CONSTANT: tf.constant(4, dtype=tf.float32),
+        #CONSTANT: tf.constant(3, dtype=tf.float32),
         spike_src_asym,
         spike_tgt_asym,
         tf.constant(0.5, dtype=tf.float32)
