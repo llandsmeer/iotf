@@ -187,10 +187,10 @@ def hh_make_timestep40(ncells, nconns):
         # w = tf.cast(recv * 0, tf.float32) + spike_w
         # syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(recv, (-1, 1)), w)
         #
-        # recv = tf.where(tf.gather(spike_flag, spike_src), spike_w, 0.0)
-        # syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(spike_tgt, (-1, 1)), recv)
+        recv = tf.where(tf.gather(spike_flag, spike_src), spike_w, 0.0)
+        syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(spike_tgt, (-1, 1)), recv)
         #
-        syn_in = 0
+        # syn_in = 0
         #
         Isyn_next = Isyn * alpha + syn_in
         state_next = tf.stack([
