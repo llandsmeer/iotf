@@ -127,12 +127,12 @@ def beta_h(V): return 1.0/(tf.exp(-0.1*V - 3.5) + 1.0)
 @tf.function(jit_compile=True)
 def beta_n(V): return 0.125*tf.exp(-0.0125*V - 0.8125)
 def hh_make_initial(ncells):
-    V = np.random.normal(-60, 3, ncells)
+    V = tf.constant(np.random.normal(-60, 3, ncells))
     m = (alpha_m(V) / (alpha_m(V) + beta_m(V))).numpy()
     h = (alpha_h(V) / (alpha_h(V) + beta_h(V))).numpy()
     n = (alpha_n(V) / (alpha_n(V) + beta_n(V))).numpy()
     return tf.constant([
-        V.tolist(), m.tolist(), h.tolist(), n.tolist(), [0]*ncells
+        V.numpy().tolist(), m.tolist(), h.tolist(), n.tolist(), [0]*ncells
         ], dtype=tf.float32)
 def hh_make_timestep40(ncells, nconns):
     argspec =[tf.TensorSpec((HH_NUM_STATE_VARS, ncells), tf.float32, name='state'),
@@ -291,6 +291,7 @@ def log(**kw):
 
 log(mode=mode, host=socket.gethostname())
 if mode == 'gpu':
+    assert len(tf.config.list_physical_devices('GPU')) > 0
     out = []
     with tf.device('/GPU:0'):
         for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
