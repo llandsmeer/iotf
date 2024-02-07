@@ -37,15 +37,16 @@ def lif_make_timestep40(ncells, nconns):
     @tf.function(input_signature=argspec, jit_compile=True)
     def timestep(
             state,
-            V_th               = 50,
-            delta              = 0.025,
-            tau_syn            = 10.,
-            tau_mem            = 4.,
-            iint               = 3.0,
             spike_src          = None,
             spike_tgt          = None,
             spike_w            = 0.05,
             ):
+        #CONSTANT:
+        V_th               = 50;
+        delta              = 0.025;
+        tau_syn            = 10.;
+        tau_mem            = 4.;
+        iint               = 3.0;
         assert state.shape[0] == LIF_NUM_STATE_VARS
         V              = state[0, :]
         Isyn           = state[1, :]
