@@ -1,8 +1,17 @@
 import sys
 sys.path.append('..')
+import json
+import socket
 import time
 import numpy as np
 import tensorflow as tf
+
+if len(sys.argv) != 2:
+    print('usage: bench.py [cpu|gpu|groq]')
+    exit(1)
+else:
+    mode = sys.argv[1]
+    assert mode in ('cpu', 'gpu', 'groq')
 
 import ioperf
 
@@ -51,7 +60,7 @@ def lif_make_timestep40(ncells, nconns):
         V_next = tf.where(S, 0., beta * V + Isyn + iint)
         Isyn_next = Isyn * alpha + syn_in
         state_next = tf.stack([V_next, Isyn_next], axis=0)
-        return {"state_next": state_next, 'S': tf.math.count_nonzero(S)}
+        return {"state_next": state_next } #, 'S': tf.math.count_nonzero(S)}
     @tf.function(jit_compile=True)
     def timestep40(state,
                    #CONSTANT: V_th, delta, tau_syn, tau_mem, iint,
@@ -62,8 +71,8 @@ def lif_make_timestep40(ncells, nconns):
                            #CONSTANT: V_th=V_th, delta=delta, tau_syn=tau_syn, tau_mem=tau_mem, iint=iint,
                            spike_src=spike_src, spike_tgt=spike_tgt, spike_w=spike_w)
             state = out['state_next']
-            S = S + out['S']
-        return {"state_next": state, 'S': S}
+            # S = S + out['S']
+        return {"state_next": state }#, 'S': S}
     return timestep40
 def lif_timeit(ncells):
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
@@ -90,12 +99,12 @@ def lif_timeit(ncells):
     a = time.perf_counter()
     for i in range(ms):
         state_next = lif40(state, *args)
-        spike_count += state_next['S'].numpy()
+        # spike_count += state_next['S'].numpy()
         state = state_next['state_next']
     b = time.perf_counter()
     f = spike_count / ncells / ms * 1e3
     elapsed = b - a
-    print('>'*10, 'firing frequency', f)
+    # print('>'*10, 'firing frequency', f)
     print('>'*10, 'seconds/second', elapsed)
     return elapsed
 
@@ -269,15 +278,31 @@ def io_timeit(ncells):
     print('>'*10, 'seconds/second', elapsed)
     return elapsed
 
-out = []
-with tf.device('/GPU:1'):
-    for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
-        print(n)
-        a = lif_timeit(n)
-        b = hh_timeit(n) # 18 Hz
-        c = io_timeit(n)
-        row = [n, a, b, c]
-        print(row)
-        out.append(row)
-out = np.array(out)
-print(out)
+def log(**kw):
+    print('LOG')
+    kw['ctime'] = time.ctime
+    for k, v in kw.items():
+        print('    ', k.ljust(20), v)
+    with open('log.json', 'a') as f:
+        print(json.dumps(kw), file=f)
+
+
+log(mode=mode, host=socket.gethostname())
+if mode == 'gpu':
+    out = []
+    with tf.device('/GPU:0'):
+        for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
+            print(n)
+            a = lif_timeit(n)
+            b = hh_timeit(n) # 18 Hz
+            c = io_timeit(n)
+            log(n=n, lif=a, hh=b, io=c)
+elif mode == 'cpu':
+    out = []
+    with tf.device('/CPU:0'):
+        for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
+            print(n)
+            a = lif_timeit(n)
+            b = hh_timeit(n) # 18 Hz
+            c = io_timeit(n)
+            log(n=n, lif=a, hh=b, io=c)
