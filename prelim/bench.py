@@ -281,6 +281,39 @@ def io_timeit(ncells):
     print('>'*10, 'seconds/second', elapsed)
     return elapsed
 
+def hh_timeit_groq(ncells):
+    from groq.runner import tsp
+    from groq.runtime import driver as runtime
+    import groq.runtime
+    spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
+    spike_src_asym = spike_src[:len(spike_src)//2]
+    spike_tgt_asym = spike_tgt[:len(spike_tgt)//2]
+    state = hh_make_initial(ncells)
+    print(state.shape, spike_src_asym.shape)
+    path = tempfile.mktemp() + '.onnx'
+    hh40 = hh_make_timestep40(ncells, len(spike_src_asym))
+    onnx_model, _ = tf2onnx.convert.from_function(
+            function=tf_function,
+            input_signature=tf_function.argspec,
+            output_path=path,
+            opset=16,
+            )
+    subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}.aa', path])
+    subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', 'i', f'{path}.aa', '--output-iop', f'{path}.iop'])
+    program = tsp.create_tsp_runner(f'{path}.iop')
+    args = dict(spike_src          = spike_src_asym, spike_tgt          = spike_tgt_asym, spike_w            = np.array(0.05, dtype=tf.float32))
+    ms = 1000
+    iints = [np.random.random(ncells)**5*10 for _ in range(ms)]
+    a = time.perf_counter()
+    for i in range(ms):
+        args['iint'] = iints[i]
+        state_next = program(state, **args)
+        state = state_next['state_next']
+    b = time.perf_counter()
+    elapsed = b - a
+    print('>'*10, 'seconds/second', elapsed)
+    return elapsed
+
 def log(**kw):
     print('LOG')
     kw['ctime'] = time.ctime()
@@ -313,20 +346,12 @@ elif mode == 'cpu':
             b = hh_timeit(n) # 18 Hz
             c = io_timeit(n)
             log(n=n, lif=a, hh=b, io=c)
-# elif mode == 'groq':
-#     import tempfile
-#     import tf2onnx
-# 
-#     tf_function = model.make_tf_function_40(*args, **kwargs)
-#     tf_function = make_hh
-# 
-#     path = tempfile.mktemp() + '.onnx'
-# 
-#     onnx_model, _ = tf2onnx.convert.from_function(
-#             function=tf_function,
-#             input_signature=tf_function.argspec,
-#             output_path=path,
-#             opset=opset,
-#             )
-# 
-#     return path
+elif mode == 'groq':
+    out = []
+    with tf.device('/CPU:0'):
+        for n in ns:
+            print(n)
+            #a = lif_timeit(n)
+            groqhh = hh_timeit_groq(n) # 18 Hz
+            #c = io_timeit(n)
+            log(n=n, lif=0, hh=groqhh, io=0)
