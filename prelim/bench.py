@@ -1,5 +1,6 @@
 import sys
 sys.path.append('..')
+import subprocess
 import json
 import socket
 import time
@@ -292,7 +293,7 @@ def log(**kw):
 
 ns = [4**3, 5**3, 6**3, 7**3, 8**3, 9**3, 10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]
 
-log(mode=mode, host=socket.gethostname())
+log(mode=mode, host=socket.gethostname(), commit=subprocess.getoutput('git rev-parse --short HEAD'))
 if mode == 'gpu':
     assert len(tf.config.list_physical_devices('GPU')) > 0
     out = []
@@ -312,20 +313,20 @@ elif mode == 'cpu':
             b = hh_timeit(n) # 18 Hz
             c = io_timeit(n)
             log(n=n, lif=a, hh=b, io=c)
-elif mode == 'groq':
-    import tempfile
-    import tf2onnx
-
-    tf_function = model.make_tf_function_40(*args, **kwargs)
-    tf_function = make_hh
-
-    path = tempfile.mktemp() + '.onnx'
-
-    onnx_model, _ = tf2onnx.convert.from_function(
-            function=tf_function,
-            input_signature=tf_function.argspec,
-            output_path=path,
-            opset=opset,
-            )
-
-    return path
+# elif mode == 'groq':
+#     import tempfile
+#     import tf2onnx
+# 
+#     tf_function = model.make_tf_function_40(*args, **kwargs)
+#     tf_function = make_hh
+# 
+#     path = tempfile.mktemp() + '.onnx'
+# 
+#     onnx_model, _ = tf2onnx.convert.from_function(
+#             function=tf_function,
+#             input_signature=tf_function.argspec,
+#             output_path=path,
+#             opset=opset,
+#             )
+# 
+#     return path
