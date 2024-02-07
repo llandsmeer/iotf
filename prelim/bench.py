@@ -62,7 +62,7 @@ def lif_make_timestep40(ncells, nconns):
         Isyn_next = Isyn * alpha + syn_in
         state_next = tf.stack([V_next, Isyn_next], axis=0)
         return {"state_next": state_next } #, 'S': tf.math.count_nonzero(S)}
-    @tf.function(jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=True)
     def timestep40(state,
                    #CONSTANT: V_th, delta, tau_syn, tau_mem, iint,
                    spike_src, spike_tgt, spike_w):
@@ -187,10 +187,10 @@ def hh_make_timestep40(ncells, nconns):
         # w = tf.cast(recv * 0, tf.float32) + spike_w
         # syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(recv, (-1, 1)), w)
         #
-        recv = tf.where(tf.gather(spike_flag, spike_src), spike_w, 0.0)
-        syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(spike_tgt, (-1, 1)), recv)
+        # recv = tf.where(tf.gather(spike_flag, spike_src), spike_w, 0.0)
+        # syn_in = tf.tensor_scatter_nd_add(tf.zeros_like(Isyn), tf.reshape(spike_tgt, (-1, 1)), recv)
         #
-        # syn_in = 0
+        syn_in = 0
         #
         Isyn_next = Isyn * alpha + syn_in
         state_next = tf.stack([
@@ -201,7 +201,7 @@ def hh_make_timestep40(ncells, nconns):
             Isyn_next
             ], axis=0)
         return {"state_next": state_next} #, 'S': tf.math.count_nonzero(spike_flag)}
-    @tf.function(jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=True)
     def timestep40(state,
                    #CONSTANT: V_th, delta, g_na, g_k, g_leak, E_na, E_k, E_leak, S, tau_syn,
                    iint, spike_src, spike_tgt, spike_w):
@@ -239,10 +239,11 @@ def hh_timeit(ncells):
         # vs.append(state.numpy()[0, :])
         state = state_next['state_next']
     ms = 1000
-    a = time.perf_counter()
     spike_count = 0
+    iints = [tf.constant(np.random.random(ncells)**5*10, dtype=tf.float32) for _ in range(ms)]
+    a = time.perf_counter()
     for i in range(ms):
-        args['iint'] = tf.constant(np.random.random(ncells)**5*10, dtype=tf.float32)
+        args['iint'] = iints[i]
         state_next = hh40(state, **args)
         # spike_count += state_next['S'].numpy()
         # vs.append(state.numpy()[0, :])
@@ -289,12 +290,14 @@ def log(**kw):
         print(json.dumps(kw), file=f)
 
 
+ns = [4**3, 5**3, 6**3, 7**3, 8**3, 9**3, 10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]
+
 log(mode=mode, host=socket.gethostname())
 if mode == 'gpu':
     assert len(tf.config.list_physical_devices('GPU')) > 0
     out = []
     with tf.device('/GPU:0'):
-        for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
+        for n in ns:
             print(n)
             a = lif_timeit(n)
             b = hh_timeit(n) # 18 Hz
@@ -303,9 +306,26 @@ if mode == 'gpu':
 elif mode == 'cpu':
     out = []
     with tf.device('/CPU:0'):
-        for n in [10**3, 20**3, 30**3, 40**3, 50**3, 60**3, 70**3, 80**3, 90**3, 100**3]:
+        for n in ns:
             print(n)
             a = lif_timeit(n)
             b = hh_timeit(n) # 18 Hz
             c = io_timeit(n)
             log(n=n, lif=a, hh=b, io=c)
+elif mode == 'groq':
+    import tempfile
+    import tf2onnx
+
+    tf_function = model.make_tf_function_40(*args, **kwargs)
+    tf_function = make_hh
+
+    path = tempfile.mktemp() + '.onnx'
+
+    onnx_model, _ = tf2onnx.convert.from_function(
+            function=tf_function,
+            input_signature=tf_function.argspec,
+            output_path=path,
+            opset=opset,
+            )
+
+    return path
