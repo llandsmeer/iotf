@@ -280,9 +280,10 @@ def io_timeit(ncells):
 
 def log(**kw):
     print('LOG')
-    kw['ctime'] = time.ctime
+    kw['ctime'] = time.ctime()
     for k, v in kw.items():
         print('    ', k.ljust(20), v)
+        kw[k] = v
     with open('log.json', 'a') as f:
         print(json.dumps(kw), file=f)
 
