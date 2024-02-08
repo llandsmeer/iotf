@@ -30,4 +30,7 @@ def make_tf_function_40(*, ngj=0, ncells=None, argconfig=(), unroll_gj=0):
     exec(src, env)
     wrap = env['f']
     wrap.argspec = tf_function.argspec
+    wrap.args = args
+    kwa = {arg.name: arg for arg in tf_function.argspec}
+    wrap.argspecv2 = [kwa[name] for name in ['state'] + args]
     return wrap

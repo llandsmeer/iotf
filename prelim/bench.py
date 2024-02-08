@@ -302,7 +302,7 @@ def lif_timeit_groq(ncells):
     lif40 = lif_make_timestep40(ncells, len(spike_src_asym), compile=False)
     onnx_model, _ = tf2onnx.convert.from_function(
             function=lif40,
-            input_signature=lif40.argspec,
+            input_signature=lif40.argspecv2,
             output_path=path,
             opset=16,
             )
