@@ -9,11 +9,11 @@ import numpy as np
 import tensorflow as tf
 
 if len(sys.argv) != 2:
-    print('usage: bench.py [cpu|gpu|groq]')
+    print('usage: bench.py [cpu|gpu|groq|tpu]')
     exit(1)
 else:
     mode = sys.argv[1]
-    assert mode in ('cpu', 'gpu', 'groq')
+    assert mode in ('cpu', 'gpu', 'groq', 'tpu')
 
 import ioperf
 
@@ -426,3 +426,17 @@ elif mode == 'groq':
         groqhh = hh_timeit_groq(n)
         groqio = io_timeit_groq(n)
         log(n=n, lif=groqlif, hh=groqhh, io=groqio)
+elif mode == 'tpu':
+    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
+    tf.config.experimental_connect_to_cluster(resolver)
+    tf.tpu.experimental.initialize_tpu_system(resolver)
+    tpus = tf.config.list_logical_devices('TPU')
+    print("All devices: ", tpus)
+    assert len(tpus) > 0
+    with tf.device('/TPU:0'):
+        for n in ns:
+            print(n)
+            a = lif_timeit(n)
+            b = hh_timeit(n)
+            c = io_timeit(n)
+            log(n=n, lif=a, hh=b, io=c)
