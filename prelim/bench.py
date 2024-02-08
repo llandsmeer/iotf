@@ -376,12 +376,15 @@ def io_timeit_groq(ncells):
     subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}', path])
     subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', '-i', f'{path}.aa', '--output-iop', f'{path}.iop'])
     program = tsp.create_tsp_runner(f'{path}.iop')
-    args = dict(spike_src=src.numpy(), spike_tgt=tgt.numpy(), spike_w=np.array(0.05, dtype=np.float32))
+    src = src.numpy()
+    tgt = tgt.numpy()
+    spike_w=np.array(0.05, dtype=np.float32)
     ms = 1000
     a = time.perf_counter()
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
     for i in range(ms):
+        breakpoint()
         state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=0.05, i_app=I_app, g_cal=g_CaL)['state_next']
     b = time.perf_counter()
     elapsed = b - a
@@ -438,7 +441,7 @@ elif mode == 'tpu':
     with tf.device('/TPU:0'):
         for n in ns:
             print(n)
+            c = io_timeit(n, compile_full=True)
             a = lif_timeit(n)
             b = hh_timeit(n)
-            c = io_timeit(n, compile_full=True)
             log(n=n, lif=a, hh=b, io=c)
