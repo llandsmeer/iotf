@@ -382,7 +382,7 @@ def io_timeit_groq(ncells):
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
     for i in range(ms):
-        state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=0.05, I_app=I_app, g_CaL=g_CaL)['state_next']
+        state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=0.05, i_app=I_app, g_cal=g_CaL)['state_next']
     b = time.perf_counter()
     elapsed = b - a
     print('>'*10, 'seconds/second', elapsed)
