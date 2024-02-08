@@ -25,7 +25,7 @@ def lif_make_initial(ncells, V=None):
         [0]*ncells if V is not None else np.random.normal(0, 3, ncells),
         [0]*ncells
         ], dtype=tf.float32)
-def lif_make_timestep40(ncells, nconns):
+def lif_make_timestep40(ncells, nconns, compile=True):
     argspec =[tf.TensorSpec((LIF_NUM_STATE_VARS, ncells), tf.float32, name='state'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='V_th'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='delta'),
@@ -36,7 +36,7 @@ def lif_make_timestep40(ncells, nconns):
               tf.TensorSpec((nconns,), tf.int32, name='spike_tgt'),
               tf.TensorSpec((), tf.float32, name='spike_w'),
               ]
-    @tf.function(input_signature=argspec, jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=compile)
     def timestep(
             state,
             spike_src          = None,
@@ -64,7 +64,7 @@ def lif_make_timestep40(ncells, nconns):
         Isyn_next = Isyn * alpha + syn_in
         state_next = tf.stack([V_next, Isyn_next], axis=0)
         return {"state_next": state_next } #, 'S': tf.math.count_nonzero(S)}
-    @tf.function(input_signature=argspec, jit_compile=True)
+    @tf.function(input_signature=argspec, jit_compile=compile)
     def timestep40(state,
                    #CONSTANT: V_th, delta, tau_syn, tau_mem, iint,
                    spike_src, spike_tgt, spike_w):
@@ -268,7 +268,8 @@ def io_timeit(ncells):
     state = ioperf.model.make_initial_neuron_state(ncells, V_soma=None)
     print(state.shape, src.shape)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
-    timestep40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
+    ff = ioperf.model.make_tf_function_40(ngj=len(src)
+    timestep40 = tf.function(ff, argconfig=argconfig), jit_compile=True, input_signature=ff.argspec)
     burn_in = 50
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
@@ -283,6 +284,42 @@ def io_timeit(ncells):
     print('>'*10, 'seconds/second', elapsed)
     return elapsed
 
+# Groq
+def lif_timeit_groq(ncells):
+    import tf2onnx
+    from groq.runner import tsp
+    from groq.runtime import driver as runtime
+    import groq.runtime
+    spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
+    spike_src_asym = spike_src[:len(spike_src)//2]
+    spike_tgt_asym = spike_tgt[:len(spike_tgt)//2]
+    state = lif_make_initial(ncells).numpy()
+    print(state.shape, spike_src_asym.shape)
+    path = tempfile.mktemp() + '.onnx'
+    print('PATH', path)
+    lif40 = lif_make_timestep40(ncells, len(spike_src_asym), compile=False)
+    onnx_model, _ = tf2onnx.convert.from_function(
+            function=lif40,
+            input_signature=lif40.argspec,
+            output_path=path,
+            opset=16,
+            )
+    subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}', path])
+    subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', '-i', f'{path}.aa', '--output-iop', f'{path}.iop'])
+    program = tsp.create_tsp_runner(f'{path}.iop')
+    args = dict(
+            spike_src=spike_src_asym.numpy(), spike_tgt=spike_tgt_asym.numpy(), spike_w=np.array(0.05, dtype=np.float32))
+    ms = 1000
+    iints = [np.random.random(ncells).astype(np.float32)**5*10 for _ in range(ms)]
+    a = time.perf_counter()
+    for i in range(ms):
+        args['iint'] = iints[i]
+        state_next = program(state=state, **args)
+        state = state_next['state_next']
+    b = time.perf_counter()
+    elapsed = b - a
+    print('>'*10, 'seconds/second', elapsed)
+    return elapsed
 def hh_timeit_groq(ncells):
     import tf2onnx
     from groq.runner import tsp
@@ -313,6 +350,37 @@ def hh_timeit_groq(ncells):
         args['iint'] = iints[i]
         state_next = program(state=state, **args)
         state = state_next['state_next']
+    b = time.perf_counter()
+    elapsed = b - a
+    print('>'*10, 'seconds/second', elapsed)
+    return elapsed
+def io_timeit_groq(ncells):
+    import tf2onnx
+    from groq.runner import tsp
+    from groq.runtime import driver as runtime
+    import groq.runtime
+    src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
+    argconfig = dict( I_app='VARY', g_CaL='VARY' )
+    io40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
+    state = hh_make_initial(ncells).numpy()
+    path = tempfile.mktemp() + '.onnx'
+    print('PATH', path)
+    onnx_model, _ = tf2onnx.convert.from_function(
+            function=io40,
+            input_signature=io40.argspec,
+            output_path=path,
+            opset=16,
+            )
+    subprocess.call(['groq-compiler', f'-save-stats={path}.stats', '--large-program', '-o', f'{path}', path])
+    subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', '-i', f'{path}.aa', '--output-iop', f'{path}.iop'])
+    program = tsp.create_tsp_runner(f'{path}.iop')
+    args = dict(spike_src=src.numpy(), spike_tgt=tgt.numpy(), spike_w=np.array(0.05, dtype=np.float32))
+    ms = 1000
+    a = time.perf_counter()
+    I_app = np.zeros(ncells, dtype='float32')
+    g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
+    for i in range(ms):
+        state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=0.05, I_app=I_app, g_CaL=g_CaL)['state_next']
     b = time.perf_counter()
     elapsed = b - a
     print('>'*10, 'seconds/second', elapsed)
@@ -354,7 +422,7 @@ elif mode == 'groq':
     out = []
     for n in ns:
         print(n)
-        #a = lif_timeit(n)
+        groqlif = lif_timeit_groq(n)
         groqhh = hh_timeit_groq(n)
-        #c = io_timeit(n)
-        log(n=n, lif=0, hh=groqhh, io=0)
+        groqio = io_timeit_groq(n)
+        log(n=n, lif=groqlif, hh=groqhh, io=groqio)
