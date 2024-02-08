@@ -427,7 +427,7 @@ elif mode == 'groq':
         groqio = io_timeit_groq(n)
         log(n=n, lif=groqlif, hh=groqhh, io=groqio)
 elif mode == 'tpu':
-    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='')
+    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
     tf.config.experimental_connect_to_cluster(resolver)
     tf.tpu.experimental.initialize_tpu_system(resolver)
     tpus = tf.config.list_logical_devices('TPU')
