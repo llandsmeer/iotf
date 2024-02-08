@@ -363,7 +363,7 @@ def io_timeit_groq(ncells):
     import groq.runtime
     src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
-    io40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
+    io40 = ioperf.model.make_tf_function_40(ncells=ncells, ngj=len(src), argconfig=argconfig)
     state = hh_make_initial(ncells).numpy()
     path = tempfile.mktemp() + '.onnx'
     print('PATH', path)
