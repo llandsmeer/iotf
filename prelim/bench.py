@@ -273,8 +273,8 @@ def io_timeit(ncells, compile_full=False):
     if compile_full:
         timestep40 = tf.function(timestep40, jit_compile=True)
     burn_in = 50
-    I_app = np.zeros(ncells, dtype='float32')
-    g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
+    I_app = tf.constant(np.zeros(ncells, dtype='float32'))
+    g_CaL = tf.constant(np.array(0.5+0.9*np.random.random(ncells), dtype='float32'))
     for i in range(burn_in):
         state = timestep40(state, gj_src=src, gj_tgt=tgt, g_gj=0.05, I_app=I_app, g_CaL=g_CaL)['state_next']
     ms = 1000
