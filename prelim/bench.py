@@ -408,28 +408,40 @@ if mode == 'gpu':
     out = []
     with tf.device('/GPU:0'):
         for n in ns:
-            print(n)
-            a = lif_timeit(n)
-            b = hh_timeit(n) # 18 Hz
-            c = io_timeit(n)
-            log(n=n, lif=a, hh=b, io=c, compile_full=True)
+            a = []
+            b = []
+            c = []
+            for i in range(5):
+                print(n, i)
+                a.append(lif_timeit(n))
+                b.append(hh_timeit(n)) # 18 Hz
+                c.append(io_timeit(n, compile_full=True))
+            log(n=n, lif=a, hh=b, io=c)
 elif mode == 'cpu':
     out = []
     with tf.device('/CPU:0'):
         for n in ns:
-            print(n)
-            a = lif_timeit(n)
-            b = hh_timeit(n) # 18 Hz
-            c = io_timeit(n)
-            log(n=n, lif=a, hh=b, io=c, compile_full=True)
+            a = []
+            b = []
+            c = []
+            for i in range(5):
+                print(n, i)
+                a.append(lif_timeit(n))
+                b.append(hh_timeit(n)) # 18 Hz
+                c.append(io_timeit(n, compile_full=True))
+            log(n=n, lif=a, hh=b, io=c)
 elif mode == 'groq':
     out = []
     for n in ns:
-        print(n)
-        groqlif = lif_timeit_groq(n)
-        groqhh = hh_timeit_groq(n)
-        groqio = io_timeit_groq(n)
-        log(n=n, lif=groqlif, hh=groqhh, io=groqio)
+        a = []
+        b = []
+        c = []
+        for i in range(5):
+            print(n, i)
+            a.append(lif_timeit_groq(n))
+            b.append(hh_timeit_groq(n))
+            c.append(io_timeit_groq(n))
+        log(n=n, lif=a, hh=b, io=c)
 elif mode == 'tpu':
     resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
     tf.config.experimental_connect_to_cluster(resolver)
@@ -439,8 +451,12 @@ elif mode == 'tpu':
     assert len(tpus) > 0
     with tf.device('/TPU:0'):
         for n in ns:
-            print(n)
-            c = io_timeit(n, compile_full=True)
-            a = lif_timeit(n)
-            b = hh_timeit(n)
+            a = []
+            b = []
+            c = []
+            for i in range(5):
+                print(n, i)
+                a.append(lif_timeit(n))
+                b.append(hh_timeit(n))
+                c.append(io_timeit(n, compile_full=True))
             log(n=n, lif=a, hh=b, io=c)
