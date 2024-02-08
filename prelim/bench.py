@@ -76,6 +76,7 @@ def lif_make_timestep40(ncells, nconns, compile=True):
             state = out['state_next']
             # S = S + out['S']
         return {"state_next": state }#, 'S': S}
+    timestep40.argspec = argspec
     return timestep40
 def lif_timeit(ncells):
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
