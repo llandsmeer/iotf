@@ -268,8 +268,7 @@ def io_timeit(ncells):
     state = ioperf.model.make_initial_neuron_state(ncells, V_soma=None)
     print(state.shape, src.shape)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
-    ff = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
-    timestep40 = tf.function(ff, jit_compile=True, input_signature=ff.argspec)
+    timestep40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
     burn_in = 50
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
