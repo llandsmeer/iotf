@@ -364,7 +364,7 @@ def io_timeit_groq(ncells):
     src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
     io40 = ioperf.model.make_tf_function_40(ncells=ncells, ngj=len(src), argconfig=argconfig)
-    state = hh_make_initial(ncells).numpy()
+    state = ioperf.model.make_initial_neuron_state(ncells, V_soma=None).numpy()
     path = tempfile.mktemp() + '.onnx'
     print('PATH', path)
     onnx_model, _ = tf2onnx.convert.from_function(
@@ -378,14 +378,13 @@ def io_timeit_groq(ncells):
     program = tsp.create_tsp_runner(f'{path}.iop')
     src = src.numpy()
     tgt = tgt.numpy()
-    spike_w=np.array(0.05, dtype=np.float32)
     ms = 1000
     a = time.perf_counter()
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
+    g_gj = np.array(0.05, dtype='float32')
     for i in range(ms):
-        breakpoint()
-        state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=0.05, i_app=I_app, g_cal=g_CaL)['state_next']
+        state = program(state=state, gj_src=src, gj_tgt=tgt, g_gj=g_gj, i_app=I_app, g_cal=g_CaL)['state_next']
     b = time.perf_counter()
     elapsed = b - a
     print('>'*10, 'seconds/second', elapsed)
