@@ -264,12 +264,14 @@ def hh_timeit(ncells):
     #plt.show()
     return elapsed
 
-def io_timeit(ncells):
+def io_timeit(ncells, compile_full=False):
     src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
     state = ioperf.model.make_initial_neuron_state(ncells, V_soma=None)
     print(state.shape, src.shape)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
     timestep40 = ioperf.model.make_tf_function_40(ngj=len(src), argconfig=argconfig)
+    if compile_full:
+        timestep40 = tf.function(timestep40, jit_compile=True)
     burn_in = 50
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
@@ -408,7 +410,7 @@ if mode == 'gpu':
             a = lif_timeit(n)
             b = hh_timeit(n) # 18 Hz
             c = io_timeit(n)
-            log(n=n, lif=a, hh=b, io=c)
+            log(n=n, lif=a, hh=b, io=c, compile_full=True)
 elif mode == 'cpu':
     out = []
     with tf.device('/CPU:0'):
@@ -417,7 +419,7 @@ elif mode == 'cpu':
             a = lif_timeit(n)
             b = hh_timeit(n) # 18 Hz
             c = io_timeit(n)
-            log(n=n, lif=a, hh=b, io=c)
+            log(n=n, lif=a, hh=b, io=c, compile_full=True)
 elif mode == 'groq':
     out = []
     for n in ns:
@@ -438,5 +440,5 @@ elif mode == 'tpu':
             print(n)
             a = lif_timeit(n)
             b = hh_timeit(n)
-            c = io_timeit(n)
+            c = io_timeit(n, compile_full=True)
             log(n=n, lif=a, hh=b, io=c)
