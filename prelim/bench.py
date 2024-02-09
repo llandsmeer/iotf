@@ -420,9 +420,18 @@ if mode == 'gpu':
             c = []
             for i in range(5):
                 print(n, i)
-                a.append(lif_timeit(n))
-                b.append(hh_timeit(n)) # 18 Hz
-                c.append(io_timeit(n, compile_full=True))
+                try:
+                    a.append(lif_timeit(n))
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    b.append(hh_timeit(n)) # 18 Hz
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    c.append(io_timeit(n, compile_full=True))
+                except Exception as ex:
+                    print(repr(ex))
             log(n=n, lif=a, hh=b, io=c)
 elif mode == 'cpu':
     out = []
@@ -433,9 +442,18 @@ elif mode == 'cpu':
             c = []
             for i in range(5):
                 print(n, i)
-                a.append(lif_timeit(n))
-                b.append(hh_timeit(n)) # 18 Hz
-                c.append(io_timeit(n, compile_full=True))
+                try:
+                    a.append(lif_timeit(n))
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    b.append(hh_timeit(n)) # 18 Hz
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    c.append(io_timeit(n, compile_full=True))
+                except Exception as ex:
+                    print(repr(ex))
             log(n=n, lif=a, hh=b, io=c)
 elif mode == 'groq':
     out = []
@@ -445,9 +463,18 @@ elif mode == 'groq':
         c = []
         for i in range(5):
             print(n, i)
-            a.append(lif_timeit_groq(n))
-            b.append(hh_timeit_groq(n))
-            c.append(io_timeit_groq(n))
+            try:
+                a.append(lif_timeit_groq(n))
+            except Exception as ex:
+                print(repr(ex))
+            try:
+                b.append(hh_timeit_groq(n))
+            except Exception as ex:
+                print(repr(ex))
+            try:
+                c.append(io_timeit_groq(n))
+            except Exception as ex:
+                print(repr(ex))
         log(n=n, lif=a, hh=b, io=c)
 elif mode == 'tpu':
     resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
@@ -463,7 +490,16 @@ elif mode == 'tpu':
             c = []
             for i in range(5):
                 print(n, i)
-                a.append(lif_timeit(n))
-                b.append(hh_timeit(n))
-                c.append(io_timeit(n, compile_full=True))
+                try:
+                    a.append(lif_timeit(n))
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    b.append(hh_timeit(n))
+                except Exception as ex:
+                    print(repr(ex))
+                try:
+                    c.append(io_timeit(n, compile_full=False))
+                except Exception as ex:
+                    print(repr(ex))
             log(n=n, lif=a, hh=b, io=c)
