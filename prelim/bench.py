@@ -25,7 +25,7 @@ def lif_make_initial(ncells, V=None):
         [0]*ncells if V is not None else np.random.normal(0, 3, ncells),
         [0]*ncells
         ], dtype=tf.float32)
-def lif_make_timestep40(ncells, nconns, compile=True):
+def lif_make_timestep40(ncells, nconns, compile=True, repeat=True):
     argspec =[tf.TensorSpec((LIF_NUM_STATE_VARS, ncells), tf.float32, name='state'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='V_th'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='delta'),
@@ -77,6 +77,9 @@ def lif_make_timestep40(ncells, nconns, compile=True):
             # S = S + out['S']
         return {"state_next": state }#, 'S': S}
     timestep40.argspec = argspec
+    if not repeat:
+        timestep.argspec = argspec
+        return timestep
     return timestep40
 def lif_timeit(ncells):
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
@@ -137,7 +140,7 @@ def hh_make_initial(ncells):
     return tf.constant([
         V.numpy().tolist(), m.tolist(), h.tolist(), n.tolist(), [0]*ncells
         ], dtype=tf.float32)
-def hh_make_timestep40(ncells, nconns, compile=True):
+def hh_make_timestep40(ncells, nconns, compile=True, repeat=True):
     argspec =[tf.TensorSpec((HH_NUM_STATE_VARS, ncells), tf.float32, name='state'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='V_th'),
               #CONSTANT: tf.TensorSpec((), tf.float32, name='delta'),
@@ -217,6 +220,9 @@ def hh_make_timestep40(ncells, nconns, compile=True):
             # spike_count = spike_count + out['S']
         return {"state_next": state}#, 'S': spike_count}
     timestep40.argspec = argspec
+    if not repeat:
+        timestep.argspec = argspec
+        return timestep
     return timestep40
 def hh_timeit(ncells):
     spike_src, spike_tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
@@ -299,10 +305,10 @@ def lif_timeit_groq(ncells):
     print(state.shape, spike_src_asym.shape)
     path = tempfile.mktemp() + '.onnx'
     print('PATH', path)
-    lif40 = lif_make_timestep40(ncells, len(spike_src_asym), compile=False)
+    lif = lif_make_timestep40(ncells, len(spike_src_asym), compile=False, repeat=False)
     onnx_model, _ = tf2onnx.convert.from_function(
-            function=lif40,
-            input_signature=lif40.argspec,
+            function=lif,
+            input_signature=lif.argspec,
             output_path=path,
             opset=16,
             )
@@ -311,7 +317,7 @@ def lif_timeit_groq(ncells):
     program = tsp.create_tsp_runner(f'{path}.iop')
     args = dict(
             spike_src=spike_src_asym.numpy(), spike_tgt=spike_tgt_asym.numpy(), spike_w=np.array(0.05, dtype=np.float32))
-    ms = 1000
+    ms = 1000*40
     iints = [np.random.random(ncells).astype(np.float32)**5*10 for _ in range(ms)]
     a = time.perf_counter()
     for i in range(ms):
@@ -334,7 +340,7 @@ def hh_timeit_groq(ncells):
     print(state.shape, spike_src_asym.shape)
     path = tempfile.mktemp() + '.onnx'
     print('PATH', path)
-    hh40 = hh_make_timestep40(ncells, len(spike_src_asym), compile=False)
+    hh40 = hh_make_timestep40(ncells, len(spike_src_asym), compile=False, repeat=False)
     onnx_model, _ = tf2onnx.convert.from_function(
             function=hh40,
             input_signature=hh40.argspec,
@@ -345,7 +351,7 @@ def hh_timeit_groq(ncells):
     subprocess.call(['aa-latest', '--name', 'hh40', '--large-program', '-i', f'{path}.aa', '--output-iop', f'{path}.iop'])
     program = tsp.create_tsp_runner(f'{path}.iop')
     args = dict(spike_src=spike_src_asym.numpy(), spike_tgt=spike_tgt_asym.numpy(), spike_w=np.array(0.05, dtype=np.float32))
-    ms = 1000
+    ms = 1000*40
     iints = [np.random.random(ncells).astype(np.float32)**5*10 for _ in range(ms)]
     a = time.perf_counter()
     for i in range(ms):
@@ -363,7 +369,8 @@ def io_timeit_groq(ncells):
     import groq.runtime
     src, tgt = ioperf.model.sample_connections_3d(ncells, rmax=4)
     argconfig = dict( I_app='VARY', g_CaL='VARY' )
-    io40 = ioperf.model.make_tf_function_40(ncells=ncells, ngj=len(src), argconfig=argconfig)
+    # io40 = ioperf.model.make_tf_function_40(ncells=ncells, ngj=len(src), argconfig=argconfig)
+    io40 = ioperf.model.make_tf_function(ncells=ncells, ngj=len(src), argconfig=argconfig)
     state = ioperf.model.make_initial_neuron_state(ncells, V_soma=None).numpy()
     path = tempfile.mktemp() + '.onnx'
     print('PATH', path)
@@ -378,7 +385,7 @@ def io_timeit_groq(ncells):
     program = tsp.create_tsp_runner(f'{path}.iop')
     src = src.numpy()
     tgt = tgt.numpy()
-    ms = 1000
+    ms = 1000*40
     a = time.perf_counter()
     I_app = np.zeros(ncells, dtype='float32')
     g_CaL = np.array(0.5+0.9*np.random.random(ncells), dtype='float32')
