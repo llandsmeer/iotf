@@ -184,6 +184,7 @@ def hh_make_timestep40(ncells, nconns, compile=True, repeat=True):
         return {"state_next": state_next} #, 'S': tf.math.count_nonzero(spike_flag)}
     @tf.function(input_signature=argspec, jit_compile=compile)
     def timestep40(state,
+                   iint
                    #CONSTANT: V_th, delta, g_na, g_k, g_leak, E_na, E_k, E_leak, S, tau_syn,
                    ):
         spike_count = 0
