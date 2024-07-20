@@ -1,5 +1,9 @@
 # Inferior olive benchmark
 
+Codebase for the paper
+
+> Landsmeer, Lennart PL, et al. "Tricking AI chips into simulating the human brain: A detailed performance analysis." Neurocomputing (2024): 127953.
+
 ## Requirements
 
  - `numpy`
